@@ -3,6 +3,7 @@ from map import FullMap, FullMap2
 
 Max_X = 9
 Max_Y = 7
+Max_Path = 20
 
 
 class Node:
@@ -143,7 +144,63 @@ def score(tile_list, board):
 
 	return final_score, efficiency
 
+# Finds the highest Flight Efficiency possible on the map
+def best_route_dfs(pos, fuel, board, current_path, visited, best):
+	x, y = pos
+	tile_type = board[y][x]
 
+	# Cap our route
+	if len(current_path) > Max_Path:
+		return best
+
+	# Score and return if at end
+	if tile_type == 'end':
+		points, efficiency = score(current_path, board)
+		if efficiency > best['score']:
+			best['path'] = list(current_path)
+			best['score'] = efficiency
+			return best
+
+	# Refuel if at airport
+	if tile_type in ['airport','start']:
+		fuel = 3
+
+	neighbors = get_neighbors(x, y)
+	new_fuel = fuel - 1
+	for neighbor in neighbors:
+		neighbor_type = board[neighbor[1]][neighbor[0]]
+
+		new_fuel = 3 if neighbor_type in ['start','end','airport'] else fuel - 1
+
+		if neighbor_type == 'impassable' or (neighbor, new_fuel) in visited:
+			continue
+		if new_fuel < 0:
+			continue
+
+		visited.add((neighbor, new_fuel))
+		current_path.append(neighbor)
+		best_route_dfs(neighbor, new_fuel, board, current_path, visited, best)
+		current_path.pop()
+		visited.remove((neighbor, new_fuel))
+
+
+
+
+def find_best_route(board):
+	start = find_start(board)
+	best = {'score': float('-inf'), 'path':None}
+	visited = set()
+	visited.add((start, 3))
+
+	best_route_dfs(start, 3, board, [start], visited, best)
+
+
+	if best['path']:
+		final_score, efficiency = score(best['path'], board)
+		print(f"Best route score: {final_score}, efficiency: {efficiency:.1f}%")
+		print(f"Path: {best['path']}")
+	else:
+		print("No valid route found")
 
 
 
@@ -164,4 +221,4 @@ def solve(b):
 	return 0
 
 
-solve(FullMap)
+find_best_route(FullMap)
