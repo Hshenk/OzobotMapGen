@@ -1,17 +1,16 @@
-from numpy.matlib import empty
+from map import FullMap, FullMap2
 
-from map import FullMap
 
 Max_X = 9
 Max_Y = 7
-board = FullMap
+
 
 class Node:
-	def __init__(self, state, parent):
+	def __init__(self, state, parent, tile):
 		self.state = state
 		self.x, self.y = state
 		self.parent = parent
-		self.tile = board[self.y][self.x]
+		self.tile = tile
 
 
 
@@ -23,10 +22,6 @@ class StackFrontier:
 	def add(self, state):
 		self.frontier.append(state)
 
-	# Checks if the frontier includes any nodes with a given state
-	def contains_state(self, state):
-		return any(node.state == state for node in self.frontier)
-
 	def empty(self):
 		return len(self.frontier) == 0
 
@@ -34,7 +29,7 @@ class StackFrontier:
 		if len(self.frontier) == 0:
 			raise Exception("StackFrontier is empty")
 		n = self.frontier.pop()
-		self.explored.add(n.state)
+		self.explored.add((n.state, n.fuel))
 		return n
 
 
@@ -69,18 +64,10 @@ def is_passable(tile):
 	return True if tile.tile != 'impassable' else False
 
 
-def tile_refuels(tile):
-	return True if tile.tile in [2, 'start', 'end'] else False
 
+def dfs(s, board):
 
-
-# Current issue: The program is creating a new node with a unique idea
-# This means that it does not recognize it as a step taken before.
-# It needs to check if any state in the frontier has the same x,y
-# Maybe that should also check if that state has less fuel, because it could be a shorter route
-def dfs(s):
-
-	start = Node((s[0], s[1]), None)
+	start = Node((s[0], s[1]), None, 'start')
 	start.fuel = 3
 
 	frontier = StackFrontier()
@@ -93,22 +80,19 @@ def dfs(s):
 		counter += 1
 
 		if frontier.empty():
-			print(f"Ended at: {node.state}, {node.tile}")
+			print(f"Failed search at: {node.state}, {node.tile}")
 			print(f"Searched: {counter} tiles")
 			return False
 
 
 		node = frontier.remove()
-		print(f"{node.fuel}, {node.state}")
-
-
 
 		# Check if we are at the end and return
 		if node.tile == 'end':
 			path = []
 			while node.parent is not None:
 				parent = node.parent
-				path.append((parent.state, parent.tile))
+				path.append(parent.state)
 				node = node.parent
 			path.reverse()
 			return path
@@ -118,29 +102,30 @@ def dfs(s):
 			# Add neighbors to frontier
 			neighbors = get_neighbors(node)
 			for neighbor in neighbors:
-				if not frontier.contains_state(neighbor) and neighbor not in frontier.explored:
-					new_node = Node(neighbor, node)
-					# Calculate fuel
-					if tile_refuels(new_node):
-						new_node.fuel = 3
-					else:
-						new_node.fuel = node.fuel - 1
+				tile_val = board[neighbor[1]][neighbor[0]]
+				new_fuel = 3 if tile_val in ['start',2,'end'] else node.fuel - 1
 
-					if is_passable(new_node) and new_node.fuel > 0:
+				if (neighbor, new_fuel) not in frontier.explored and not any(
+						(n.state, n.fuel) == (neighbor,new_fuel) for n in frontier.frontier
+				):
+					new_node = Node(neighbor, node, tile_val)
+					new_node.fuel = new_fuel
+
+					if is_passable(new_node) and new_node.fuel >= 0:
 						frontier.add(new_node)
 
 
 
 
+def solve(b):
 
 
-def solve(board):
-	#print(f"start is: ({start[0]}, {start[1]}))")
-	#print(get_neighbors(start_tile))
-	#print(tile_refuels(start_tile))
 
+	result = dfs(find_start(b), b)
 
-	print(dfs(find_start(board)))
+	if result:
+		print (f"Found the end in {len(result)} tiles")
+		print(f"Route: {result}")
 
 
 
