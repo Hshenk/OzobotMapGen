@@ -45,21 +45,19 @@ def find_start(board):
 
 # Returns neighbors, excluding out of bounds
 # Only checks Max_X and Max_Y for boundry
-def get_neighbors (tile):
-	row = tile.x
-	col = tile.y
-	pos_neighbors = [(row-1, col), (row+1, col), (row, col-1), (row, col+1)]
+def get_neighbors (x,y):
+	pos_neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
 	neighbors = []
-	for x,y in pos_neighbors:
-		if x < 0 or x > Max_X or y < 0 or y > Max_Y:
+	for nx,ny in pos_neighbors:
+		if nx < 0 or nx > Max_X or ny < 0 or ny > Max_Y:
 			continue
 		else:
-			neighbors.append((x,y))
+			neighbors.append((nx,ny))
 
 	return neighbors
 
 
-# Note currently used
+
 def is_passable(tile):
 	return True if tile.tile != 'impassable' else False
 
@@ -100,10 +98,10 @@ def dfs(s, board):
 
 		else:
 			# Add neighbors to frontier
-			neighbors = get_neighbors(node)
+			neighbors = get_neighbors(node.x, node.y)
 			for neighbor in neighbors:
 				tile_val = board[neighbor[1]][neighbor[0]]
-				new_fuel = 3 if tile_val in ['start',2,'end'] else node.fuel - 1
+				new_fuel = 3 if tile_val in ['start','airport','end'] else node.fuel - 1
 
 				if (neighbor, new_fuel) not in frontier.explored and not any(
 						(n.state, n.fuel) == (neighbor,new_fuel) for n in frontier.frontier
@@ -115,11 +113,41 @@ def dfs(s, board):
 						frontier.add(new_node)
 
 
+def score(tile_list, board):
+	tailwind_tiles = set()
+	airport_tiles = set()
+	headwind_tiles = set()
+	tile_count = 0
+
+	for tile in tile_list:
+		tile_type = board[tile[1]][tile[0]]
+		match tile_type:
+			case "headwind":
+				headwind_tiles.add(tile)
+			case "tailwind":
+				tailwind_tiles.add(tile)
+			case "airport":
+				airport_tiles.add(tile)
+			case _:
+				pass
+		if tile_type not in ['start','end']:
+			tile_count += 1
+
+
+	airports = len(airport_tiles)
+	headwinds = len(headwind_tiles)
+	tailwinds = len(tailwind_tiles)
+
+	final_score = (airports * 2) + (tailwinds - headwinds)
+	efficiency = (final_score/tile_count) * 100
+
+	return final_score, efficiency
+
+
+
 
 
 def solve(b):
-
-
 
 	result = dfs(find_start(b), b)
 
@@ -127,6 +155,9 @@ def solve(b):
 		print (f"Found the end in {len(result)} tiles")
 		print(f"Route: {result}")
 
+		final_score, efficiency = score(result, b)
+		print(f"Final Score: {final_score}")
+		print(f"Flight Efficiency: {efficiency}")
 
 
 
