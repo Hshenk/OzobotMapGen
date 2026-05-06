@@ -1,4 +1,4 @@
-from map import FullMap, FullMap2
+from map import FullMap, FullMap2, FullMap3
 
 
 Max_X = 9
@@ -197,7 +197,7 @@ def find_best_route(board):
 
 	if best['path']:
 		final_score, efficiency = score(best['path'], board)
-		print(f"Best route score: {final_score}, efficiency: {efficiency:.1f}%")
+		print(f"Best route score: {final_score}, efficiency: {efficiency:.2f}%")
 		print(f"Path: {best['path']}")
 	else:
 		print("No valid route found")
@@ -221,4 +221,5 @@ def solve(b):
 	return 0
 
 
-find_best_route(FullMap)
+if __name__ == "__main__":
+	find_best_route(FullMap3)
