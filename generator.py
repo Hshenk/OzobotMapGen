@@ -48,9 +48,16 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 	protected_chain = _compute_protected_corridor(start, airport_chain, end_block)
 
 
+	# Begin placing other special tiles
+	n_extra = n_airports - len(airport_chain)
+	print(n_extra)
+	if n_extra > 0:
+		new_airports = _place_extra_airports(airport_chain, n_extra, board, rng)
+
+
 
 	#TODO
-	# Protected Chain is done. Move on to placing special tiles.
+	# All airports are placed. Move on to other tiles
 
 
 	_print_board(board)
@@ -261,9 +268,45 @@ def _compute_protected_corridor(start, spine_airports, end_block):
 
 	return protected_chain
 
-def _place_extra_airports(spine_airports, end_block, n_extra, board, rng):
-	# Return list[tuple]
-	raise NotImplementedError
+def _place_extra_airports(spine_airports, n_extra, board, rng):
+	candidates = []
+	all_airports = set(spine_airports)
+	all_airports.add(find_start(board))   # We can also reach an airport if it is within range of the start
+	new_airports = []
+
+	# Initial loop to check all airports
+	for airport in all_airports:
+		for y in range(Height):
+			for x in range(Length):
+				if _manhattan((x, y), airport) <= 4:
+					if board[y][x] == 0 and (x, y) not in candidates:
+						candidates.append((x, y))
+
+	# Loop until we have added all of the needed airports
+	while n_extra > 0:
+		# Warns if we have run out of candidates
+		if len(candidates) == 0:
+			print("Warning, ran out of candidates while placing airports")
+			break
+
+
+		rng.shuffle(candidates)
+
+		new_airport = candidates.pop()
+		all_airports.add(new_airport)
+		new_airports.append(new_airport)
+		board[new_airport[1]][new_airport[0]] = 'airport'
+		n_extra -= 1
+
+
+		# Check the tiles surrounding the newly created airport
+		for y in range(Height):
+			for x in range(Length):
+				if _manhattan((x, y), new_airport) <= 4:
+					if board[y][x] == 0 and (x, y) not in candidates:
+						candidates.append((x, y))
+
+	return new_airports
 
 
 def _place_winds(n_tailwinds, n_headwinds, board, rng):
@@ -357,4 +400,4 @@ def _validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable):
 # Small version for testing
 # generate_map(42, 4, 1, 1, 1)
 
-generate_map(42, 2, 4, 3, 10)
+generate_map(42, 6, 4, 3, 10)
