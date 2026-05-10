@@ -1,7 +1,9 @@
 from search import dfs, find_start
+from collections import deque
+import random
 
 Length = 10
-Width = 8
+Height = 8
 
 # Input: Seed, num airports, num tailwinds, num headwinds, num impassable
 # Output: A list[list] containing the 8x10 gameboard
@@ -9,7 +11,10 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
                n_headwinds: int, n_impassable:int):
 	_validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable)
 
+	rng = random.Random(seed)
 	board = _init_board()
+
+
 
 	raise NotImplementedError
 
@@ -18,7 +23,7 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 # Returns a blank board of Length x Width tiles populated just with '0's
 def _init_board():
 	out = []
-	for i in range(Width):
+	for i in range(Height):
 		row = []
 		for j in range(Length):
 			row.append(0)
@@ -27,10 +32,25 @@ def _init_board():
 
 
 
-
+# Picks a 2x2 block to be the end tiles
 def _get_corner_config(rng):
 	# Return tuple[tuple,set]
-	raise NotImplementedError
+	corners = [(0,0), (Length-1, 0), (Length-1, Height-1), (0, Height-1)]
+
+
+	diagonal = {(0,0): (1,1),
+	            (Length-1,0): (Length-2, 1),
+	            (Length-1,Height-1): (Length-2, Height-2),
+	            (0, Height-1): (1, Height-2),}
+
+
+	end = rng.choice(corners)
+	square = set(get_neighbors(end[0],end[1]))
+	square.add(end)
+	square.add(diagonal[end])
+
+	return end, square
+
 
 
 def _place_start_end(rng, end_block, board):
@@ -63,35 +83,82 @@ def _is_solvable(board):
 	# Return bool
 	raise NotImplementedError
 
+# Returns the shortest path as a list. Optional argument allows for blocked tiles
 def _bfs_path(start, goal, blocked=frozenset()):
-	# Return list | None
-	raise NotImplementedError
+	frontier = deque([start])
+	visited = set()
+	visited.add(start)
+	parents = {start:None}
 
 
-# Needs to return the distance between point a and b
-# This int should be a measure constrained to game rules (So no diagonals)
-def manhattan(a, b):
+	while frontier:
+		current = frontier.popleft()
 
-	#TODO
-	# I think you can just use abs(a1-b1) + abs(a2-b2), but test
+		# Check if we're at the goal and retrace path
+		if current == goal:
+
+			path = [current]
+
+			while parents[current] is not None:
+				current = parents[current]
+				path.append(current)
+
+			path.reverse()
+
+			return path
+
+		# If not, we look at the neighbors
+		for neighbor in get_neighbors(current[0], current[1]):
+			if neighbor not in visited and neighbor not in blocked:
+				frontier.append(neighbor)
+				visited.add(neighbor)
+				parents[neighbor] = current
+
+	return None
 
 
-	# Return int
-	raise NotImplementedError
+
+# Modified version of get_neighbors that works off of Length and Height globals
+def get_neighbors (x,y):
+	pos_neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
+	neighbors = []
+	for nx,ny in pos_neighbors:
+		if nx < 0 or nx > Length-1 or ny < 0 or ny > Height-1:
+			continue
+		else:
+			neighbors.append((nx,ny))
+
+	return neighbors
+
+
+
+def _manhattan(a, b):
+	return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
 # Does not return, but raises an error if the input is invalid
 def _validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable):
 	total = 0
+
+	if n_airports < 1:
+		raise ValueError('Not enough airports')
+
 	for n in [n_airports, n_tailwinds, n_headwinds, n_impassable]:
 		if not n >= 0:
 			raise ValueError('Enter a positive number of tiles')
 		total += n
-	if total > ((Length * Width) - 5):
+	if total > ((Length * Height) - 5):
 		raise ValueError('Too many special tiles listed')
 
 
 
+# Test corner
+rng = random.Random(42)
+corner, square = _get_corner_config(rng)
+print(corner)
+print(square)
 
 
-generate_map(42, 8, 4, 3, 10)
+
+
+#generate_map(42, 8, 4, 3, 10)
