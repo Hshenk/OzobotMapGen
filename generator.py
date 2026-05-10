@@ -1,9 +1,12 @@
 from search import dfs, find_start
 from collections import deque
-import random
+import random, math
 
 Length = 10
 Height = 8
+
+# This prevents the start and end tiles from generating within a certain distance of each other
+Min_Start_Dis = 10
 
 # Input: Seed, num airports, num tailwinds, num headwinds, num impassable
 # Output: A list[list] containing the 8x10 gameboard
@@ -15,6 +18,42 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 	board = _init_board()
 
 
+	# Start and End lines
+	end, end_block = _get_corner_config(rng)
+	_place_start_end(rng, end_block, board)
+	start = find_start(board)
+
+	paths = [_bfs_path(start, tile) for tile in end_block]
+	paths = [p for p in paths if p is not None]
+	shortest = min(paths, key = len)
+
+	min_airports = math.ceil((len(shortest) - 1) / 4) - 1
+
+
+	if min_airports > n_airports:
+		raise Exception("Not enough airports")
+
+	airport_chain = _generate_airport_chain(start, end_block, min_airports, rng)
+
+
+	# Place down the main chain of airports
+	for airport in airport_chain:
+		board[airport[1]][airport[0]] = 'airport'
+
+
+	if not _is_solvable(board):
+		raise Exception("Something went wrong placing main chain of airports")
+
+
+	protected_chain = _compute_protected_corridor(start, airport_chain, end_block)
+
+
+
+	#TODO
+	# Protected Chain is done. Move on to placing special tiles.
+
+
+	_print_board(board)
 
 	raise NotImplementedError
 
@@ -31,6 +70,10 @@ def _init_board():
 	return out
 
 
+def _print_board(board):
+	for line in board:
+		print(line)
+
 
 # Picks a 2x2 block to be the end tiles
 def _get_corner_config(rng):
@@ -41,29 +84,182 @@ def _get_corner_config(rng):
 	diagonal = {(0,0): (1,1),
 	            (Length-1,0): (Length-2, 1),
 	            (Length-1,Height-1): (Length-2, Height-2),
-	            (0, Height-1): (1, Height-2),}
+	            (0, Height-1): (1, Height-2)}
 
 
 	end = rng.choice(corners)
-	square = set(get_neighbors(end[0],end[1]))
-	square.add(end)
-	square.add(diagonal[end])
+	square = [end]
+	for t in get_neighbors(end[0],end[1]):
+		square.append(t)
+
+
+	square.append(diagonal[end])
 
 	return end, square
 
 
-
+# Picks a random corner, generates an end block and places the start somewhere on the opposite corner
 def _place_start_end(rng, end_block, board):
-	# Return tuple[tuple,tuple]
-	raise NotImplementedError
+	start_options = {(0,0): (Length-1, Height-1),
+	         (Length-1,0): (0, Height-1),
+	         (Length-1,Height-1): (0,0),
+	         (0, Height-1): (Length-1, 0)}
 
+	# This is storing the opposite corner as a reference
+	start_corner = start_options[end_block[0]]
+
+	x_ranges = {0: range(0, Length // 2), Length - 1: range(Length // 2, Length)}
+	y_ranges = {0: range(0, Height // 2), Height - 1: range(Height // 2, Height)}
+
+	x_range = x_ranges[start_corner[0]]
+	y_range = y_ranges[start_corner[1]]
+
+	# # Populate a list of coordinates in our starting region
+	start_region = []
+	for x in x_range:
+		for y in y_range:
+			start_region.append((x,y))
+
+
+	start_options = []
+	for tile in start_region:
+		if _manhattan(tile, end_block[0]) > Min_Start_Dis:
+			start_options.append(tile)
+	start = rng.choice(start_options)
+
+
+	# Place start and end tiles
+	for tile in end_block:
+		board[tile[1]][tile[0]] = 'end'
+
+	if board[start[1]][start[0]] == 'end':
+		raise Exception('Tried to place start tile on end tile')
+	board[start[1]][start[0]] = 'start'
+
+
+	return
+
+
+# Generates a chain of airports from the start to finish
 def _generate_airport_chain(start, end_block, n_spine, rng):
-	# Return list[tuple]
-	raise NotImplementedError
+	current = start
+	chain = []
 
+	while True:
+		paths = []
+		for end_tile in end_block:
+			paths.append(_manhattan(current, end_tile))
+		closest_path = min(paths)
+		if closest_path <= 4:
+			# Placeholder for return value
+			return chain
+
+
+		candidates = []
+		for y in range(Height):
+			for x in range(Length):
+				pos = (x,y)
+				dis = _manhattan(pos, current)
+				if 2 <= dis <= 4 and pos not in chain:
+					# Make sure it is not already a start or end tile
+					if pos != start and pos not in end_block:
+
+						# Check candidate distance compared to current distance
+						new_paths = []
+						for end_tile in end_block:
+							new_paths.append(_manhattan(pos, end_tile))
+						new_closest = min(new_paths)
+
+						if new_closest < closest_path:
+							candidates.append(pos)
+
+		# fallback, breaks the loop to reach fallback method
+		if len(candidates) == 0:
+			break
+
+
+
+		next = rng.choice(candidates)
+		chain.append(next)
+		current = next
+
+
+
+	# Fallback method using bfs
+	print("Using fallback to generate chain")
+	paths = []
+	chain = [] # Clear any partial chain
+
+	for end_tile in end_block:
+		paths.append(_manhattan(start, end_tile))
+	closest_path = min(paths)
+	closest_end = end_block[paths.index(closest_path)]
+
+	path = _bfs_path(start, closest_end)
+
+
+	for i, tile in enumerate(path):
+		if i > 0 and i % 3 == 0:
+			chain.append(tile)
+
+
+
+	return chain
+
+# Returns a list of all tiles following the airport chain from start to finish
 def _compute_protected_corridor(start, spine_airports, end_block):
-	# Return set
-	raise NotImplementedError
+	protected_chain = set()
+
+
+
+	# Handles a very small board with no airport chain
+	if len(spine_airports) == 0:
+		closest_end = ()
+		closest_dis = 10
+		for end_tile in end_block:
+			dis = _manhattan(start, end_tile)
+			if dis < closest_dis:
+				closest_end = end_tile
+				closest_dis = dis
+
+		protected_chain.add(closest_end)
+		protected_chain.add(start)
+
+		chain = _bfs_path(start, closest_end)
+		for tile in chain:
+			protected_chain.add(tile)
+		return protected_chain
+
+
+	# Find the end tile that is closest to the last airport in the line
+	closest_end = ()
+	closest_dis = 10 # Placeholder, but it should never be more than 4 regardless
+	for end_tile in end_block:
+		dis = _manhattan(spine_airports[-1], end_tile)
+		if dis < closest_dis:
+			closest_end = end_tile
+			closest_dis = dis
+
+	# Creates an ordered list, just of known waypoints on the chain
+	# At the same time it adds those to the final output set
+	full_chain = [start]
+	protected_chain.add(start)
+	for airport in spine_airports:
+		full_chain.append(airport)
+		protected_chain.add(airport)
+	full_chain.append(closest_end)
+	protected_chain.add(closest_end)
+
+
+	for i, tile1 in enumerate(full_chain):
+		if i == len(full_chain) - 1:
+			break
+		tile2 = full_chain[i + 1]
+		new_tiles = _bfs_path(tile1, tile2)
+		for new_tile in new_tiles:
+			protected_chain.add(new_tile)
+
+	return protected_chain
 
 def _place_extra_airports(spine_airports, end_block, n_extra, board, rng):
 	# Return list[tuple]
@@ -80,8 +276,7 @@ def _place_impassable(n_impassable, board, protected, rng):
 
 
 def _is_solvable(board):
-	# Return bool
-	raise NotImplementedError
+	return True if dfs(find_start(board), board) else False
 
 # Returns the shortest path as a list. Optional argument allows for blocked tiles
 def _bfs_path(start, goal, blocked=frozenset()):
@@ -153,12 +348,13 @@ def _validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable):
 
 
 # Test corner
-rng = random.Random(42)
-corner, square = _get_corner_config(rng)
-print(corner)
-print(square)
+# rng = random.Random(42)
+# corner, square = _get_corner_config(rng)
+# print(corner)
+# print(square)
 
 
+# Small version for testing
+# generate_map(42, 4, 1, 1, 1)
 
-
-#generate_map(42, 8, 4, 3, 10)
+generate_map(42, 2, 4, 3, 10)
