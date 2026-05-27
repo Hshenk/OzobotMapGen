@@ -1,8 +1,8 @@
 from map import FullMap, FullMap2, FullMap3
 
 
-Max_X = 9
-Max_Y = 7
+# Max_X = 9
+# Max_Y = 7
 Max_Path = 20
 
 
@@ -36,8 +36,12 @@ class StackFrontier:
 
 
 def find_start(board):
-	for y in range(Max_Y+1):
-		for x in range(Max_X+1):
+	rows = len(board)
+	cols = len(board[0])
+
+
+	for y in range(rows):
+		for x in range(cols):
 			if board[y][x] == "start":
 				return x, y
 
@@ -46,11 +50,14 @@ def find_start(board):
 
 # Returns neighbors, excluding out of bounds
 # Only checks Max_X and Max_Y for boundry
-def get_neighbors (x,y):
+def get_neighbors (x,y,board):
+	columns = len(board[0])
+	rows = len(board)
+
 	pos_neighbors = [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
 	neighbors = []
 	for nx,ny in pos_neighbors:
-		if nx < 0 or nx > Max_X or ny < 0 or ny > Max_Y:
+		if nx < 0 or nx > columns - 1 or ny < 0 or ny > rows - 1:
 			continue
 		else:
 			neighbors.append((nx,ny))
@@ -99,7 +106,7 @@ def dfs(s, board):
 
 		else:
 			# Add neighbors to frontier
-			neighbors = get_neighbors(node.x, node.y)
+			neighbors = get_neighbors(node.x, node.y, board)
 			for neighbor in neighbors:
 				tile_val = board[neighbor[1]][neighbor[0]]
 				new_fuel = 3 if tile_val in ['start','airport','end'] else node.fuel - 1
@@ -165,7 +172,7 @@ def best_route_dfs(pos, fuel, board, current_path, visited, best):
 	if tile_type in ['airport','start']:
 		fuel = 3
 
-	neighbors = get_neighbors(x, y)
+	neighbors = get_neighbors(x, y, board)
 	new_fuel = fuel - 1
 	for neighbor in neighbors:
 		neighbor_type = board[neighbor[1]][neighbor[0]]
@@ -185,7 +192,8 @@ def best_route_dfs(pos, fuel, board, current_path, visited, best):
 
 
 
-
+# Finds and prints the best route
+# Returns int:score, float:flight_efficiency, list:path
 def find_best_route(board):
 	start = find_start(board)
 	best = {'score': float('-inf'), 'path':None}
@@ -197,10 +205,12 @@ def find_best_route(board):
 
 	if best['path']:
 		final_score, efficiency = score(best['path'], board)
-		print(f"Best route score: {final_score}, efficiency: {efficiency:.2f}%")
-		print(f"Path: {best['path']}")
+		#print(f"Best route score: {final_score}, efficiency: {efficiency:.2f}%")
+		#print(f"Path: {best['path']}")
+		return final_score, efficiency, best['path']
 	else:
-		print("No valid route found")
+		#print("No valid route found")
+		raise Exception("No path found")
 
 
 
@@ -222,4 +232,7 @@ def solve(b):
 
 
 if __name__ == "__main__":
-	find_best_route(FullMap3)
+	f_score, eff, path = find_best_route(FullMap3)
+
+	print (f_score, eff)
+	print(path)

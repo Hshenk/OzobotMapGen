@@ -33,6 +33,8 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 	if min_airports > n_airports:
 		raise Exception("Not enough airports")
 
+	# This returns a lost of airports that chain directly to the end
+	# It does not include tiles between them
 	airport_chain = _generate_airport_chain(start, end_block, min_airports, rng)
 
 
@@ -45,24 +47,43 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 		raise Exception("Something went wrong placing main chain of airports")
 
 
+	# Set that represents all tiles between airports in the main spine
 	protected_chain = _compute_protected_corridor(start, airport_chain, end_block)
 
 
 	# Begin placing other special tiles
 	n_extra = n_airports - len(airport_chain)
-	print(n_extra)
+
 	if n_extra > 0:
 		new_airports = _place_extra_airports(airport_chain, n_extra, board, rng)
 
 
+		# Find paths from each new airport to their closest spine airport
+		# Then add those paths to protected tiles.
+		for airport in new_airports:
+			nearest = min(airport_chain, key=lambda a: _manhattan(a, airport)) if airport_chain else start
 
-	#TODO
-	# All airports are placed. Move on to other tiles
+			path = _bfs_path(nearest, airport)
+			for tile in path:
+				protected_chain.add(tile)
+
+
+
+	_place_winds(n_tailwinds, n_headwinds, board, rng)
+
+
+
+	_place_impassable(n_impassable, board, protected_chain, rng)
+
+
+	# Final solvability check (Should be redundant)
+	if not _is_solvable(board):
+		raise Exception("Something went wrong. Generated board is unsolvable")
 
 
 	_print_board(board)
 
-	raise NotImplementedError
+	return board
 
 
 
@@ -186,9 +207,9 @@ def _generate_airport_chain(start, end_block, n_spine, rng):
 
 
 
-		next = rng.choice(candidates)
-		chain.append(next)
-		current = next
+		chosen = rng.choice(candidates)
+		chain.append(chosen)
+		current = chosen
 
 
 
@@ -240,7 +261,7 @@ def _compute_protected_corridor(start, spine_airports, end_block):
 
 	# Find the end tile that is closest to the last airport in the line
 	closest_end = ()
-	closest_dis = 10 # Placeholder, but it should never be more than 4 regardless
+	closest_dis = float('inf') # Placeholder, but it should never be more than 4 regardless
 	for end_tile in end_block:
 		dis = _manhattan(spine_airports[-1], end_tile)
 		if dis < closest_dis:
@@ -263,11 +284,15 @@ def _compute_protected_corridor(start, spine_airports, end_block):
 			break
 		tile2 = full_chain[i + 1]
 		new_tiles = _bfs_path(tile1, tile2)
+
+		assert new_tiles is not None, 'Error: could not find valid path in airport chain'
+
 		for new_tile in new_tiles:
 			protected_chain.add(new_tile)
 
 	return protected_chain
 
+# Places extra airports and returns a list of their locations
 def _place_extra_airports(spine_airports, n_extra, board, rng):
 	candidates = []
 	all_airports = set(spine_airports)
@@ -308,14 +333,70 @@ def _place_extra_airports(spine_airports, n_extra, board, rng):
 
 	return new_airports
 
-
+# Places tailwinds and headwinds directly on board without any return
 def _place_winds(n_tailwinds, n_headwinds, board, rng):
-	# No return
-	raise NotImplementedError
+
+	# Collect all blank tiles
+	candidates = []
+
+	for y in range(Height):
+		for x in range(Length):
+			if board[y][x] == 0:
+				candidates.append((x, y))
+
+	# Double check we have enough candidates
+	if len(candidates) < (n_tailwinds + n_headwinds):
+		raise ValueError("Not enough blank tiles for winds")
+
+
+	# Shuffle and assign headwinds then tailwinds
+	rng.shuffle(candidates)
+
+	for n in range(n_headwinds):
+		new_headwind = candidates.pop()
+		x, y = new_headwind
+		board[y][x] = 'headwind'
+
+	for n in range(n_tailwinds):
+		new_tailwind = candidates.pop()
+		x, y = new_tailwind
+		board[y][x] = 'tailwind'
+
 
 def _place_impassable(n_impassable, board, protected, rng):
-	# return int
-	raise NotImplementedError
+
+	# Collect all blank tiles
+	candidates = []
+
+	for y in range(Height):
+		for x in range(Length):
+			if board[y][x] == 0 and (x,y) not in protected:
+				candidates.append((x, y))
+
+
+	rng.shuffle(candidates)
+
+
+	placed = 0
+	while n_impassable > 0:
+
+		if len(candidates) == 0:
+			print(f"Warning, could only place {placed} impassable tiles")
+			break
+
+		x,y = candidates.pop()
+
+		board[y][x] = 'impassable'
+
+		if not _is_solvable(board):
+			board[y][x] = 0
+		else:
+			n_impassable -= 1
+			placed += 1
+
+
+
+	return placed
 
 
 def _is_solvable(board):
@@ -390,14 +471,7 @@ def _validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable):
 
 
 
-# Test corner
-# rng = random.Random(42)
-# corner, square = _get_corner_config(rng)
-# print(corner)
-# print(square)
 
 
-# Small version for testing
-# generate_map(42, 4, 1, 1, 1)
 
-generate_map(42, 6, 4, 3, 10)
+generated_board = generate_map(42, 6, 4, 3, 40)

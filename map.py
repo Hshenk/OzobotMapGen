@@ -41,3 +41,28 @@ FullMap3 = [
 	[0, 0, h, 0, 0,     0, 0, h, i, A],
 	[0, 0, s, 0, A,     A, 0, 0, 0, h]
 ]
+
+
+FullMap4 = [
+	[A, A, i, i,     t, t, e, e],
+	[0, 0, 0, 0,     0, i, e, e],
+	[t, h, h, h,     0, i, i, 0],
+	[0, 0, 0, A,     0, A, h, 0],
+
+	[0, 0, t, i,     h, 0, 0, A],
+	[A, 0, A, h,     t, A, i, t],
+	[0, 0, h, 0,     0, h, i, A],
+	[0, 0, s, 0,     0, 0, 0, h]
+]
+
+Generated_Map =[
+['end', 'end', 0, 0, 0, 'impassable', 'impassable', 'impassable', 'tailwind', 0],
+['end', 'end', 0, 0, 'airport', 0, 0, 'impassable', 0, 0],
+[0, 0, 0, 'airport', 0, 0, 'airport', 'impassable', 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 'impassable', 0],
+['airport', 0, 0, 0, 0, 0, 0, 'impassable', 0, 0],
+[0, 'tailwind', 'airport', 0, 'headwind', 0, 0, 0, 'impassable', 0],
+[0, 'tailwind', 0, 'headwind', 'airport', 'start', 'headwind', 0, 0, 'impassable'],
+['tailwind', 0, 0, 0, 0, 'impassable', 0, 0, 0, 0]
+]
+# (Seed: 42, Airports: 6, Tailwinds: 4, Headwinds: 3, Impassable: 10)
