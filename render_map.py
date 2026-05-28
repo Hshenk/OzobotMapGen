@@ -7,7 +7,7 @@ from math import hypot, ceil
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, 'Outputs')
-TILE_PX = 150
+TILE_PX = 154
 BORDER_OUTER = 4      # thick outer border
 BORDER_INNER = 1      # grid lines
 BORDER_PAGE  = 3      # page-boundary dividers
@@ -35,12 +35,12 @@ COLOR_META_BG = (245, 245, 245) # Off-white for meta data strip
 
 # PDF Page variables
 DPI = 150
-PAGE_WIDTH  = int(8.5 * DPI)   # 1275 px
-PAGE_HEIGHT = int(11  * DPI)   # 1650 px
-MARGIN_TOP    = int(0.50 * DPI)   # 75 px  — standard
-MARGIN_LEFT   = int(0.50 * DPI)   # 75 px  — standard
-MARGIN_BOTTOM = int(0.85 * DPI)   # 127 px — slightly larger for seed text
-MARGIN_RIGHT  = int(1.75 * DPI)   # 262 px — larger for page number label
+PAGE_WIDTH  = int(11  * DPI)   # 1650 px
+PAGE_HEIGHT = int(8.5 * DPI)   # 1275 px
+MARGIN_TOP    = int(0.10 * DPI)   # standard
+MARGIN_LEFT   = int(0.10 * DPI)   # standard
+MARGIN_BOTTOM = int(0.10 * DPI)   # standard
+MARGIN_RIGHT  = int(0.50 * DPI)   # larger for page number label
 
 
 TILE_COLORS = {
@@ -203,8 +203,14 @@ def _find_end_topleft(board):
 
 
 # Creates a compiled map to be printed together as a single file
-def compose_full_map(board, tile_size=TILE_PX,
-                     start_name=START_AIRPORT_NAME, end_name=END_AIRPORT_NAME):
+def compose_full_map(board, metadata,
+                     row_offset=0, col_offset=0):
+
+	# Unpack metadata
+	start_name = metadata['start_name']
+	end_name = metadata['end_name']
+	tile_size = metadata['tile_size']
+
 	# Dynamic height and width
 	columns = len(board[0])
 	rows = len(board)
@@ -223,7 +229,8 @@ def compose_full_map(board, tile_size=TILE_PX,
 				continue
 
 			# Render tile and paste at desired location
-			tile_img = _render_tile(tile_type, col, row, tile_size, start_name=start_name)
+			tile_img = _render_tile(tile_type, col, row, tile_size,
+			                        start_name=start_name, row_offset=row_offset,col_offset=col_offset)
 
 			px = BORDER_OUTER + col * tile_size
 			py = BORDER_OUTER + row * tile_size
@@ -262,7 +269,10 @@ def compose_full_map(board, tile_size=TILE_PX,
 	return image
 
 # Creates a complied map with a route overlay and text describing the best route
-def overlay_route(base_image, board, tile_size, seed=None):
+def overlay_route(base_image, board, metadata):
+	seed = metadata['seed']
+	tile_size = metadata['tile_size']
+
 	draw = ImageDraw.Draw(base_image)
 
 	score, flight_eff, path = find_best_route(board)
@@ -346,7 +356,7 @@ def overlay_route(base_image, board, tile_size, seed=None):
 	return large_image
 
 
-# Returns a list of page dicts in reading order
+# Returns a list of page dicts in reading order and (pages wide, pages tall)
 def _split_pages(board):
 	num_rows = len(board)
 	num_cols = len(board[0])
@@ -387,18 +397,142 @@ def _split_pages(board):
 			}
 			page_list.append(page_data)
 
-	return page_list
+	return page_list, (pages_wide, pages_tall)
+
+
+# Used to generate a single page for printing
+# Returns the PL image
+def _render_page(page_dict, metadata, last=False):
+
+	# Unpack metadata
+	seed = metadata['seed']
+	tile_size = metadata['tile_size'] * 2 # The tiles are far too small when printed to a standard page
+	start_name = metadata['start_name']
+	end_name = metadata['end_name']
+
+	# Unpack the dictionary
+	board_slice = page_dict['board']
+	col_offset = page_dict['col_offset']
+	row_offset = page_dict['row_offset']
+	page_number = page_dict['page_number']
+
+
+	columns = len(board_slice[0])
+	rows = len(board_slice)
+
+	# Make sure we have a 4x5 grid
+	if columns != PAGE_COLS or rows != PAGE_ROWS:
+		raise ValueError('Tried to generate PDF with non-standard tile count')
+
+
+	# Create a white, page-sized image
+	image_height = PAGE_HEIGHT
+	image_width = PAGE_WIDTH
+	image = Image.new("RGB", (image_width,image_height), COLOR_EMPTY)
+
+
+
+	# Draw lines
+	for col in range(columns):
+		for row in range(rows):
+			tile_type = board_slice[row][col]
+			if tile_type == 'end':
+				continue
+
+			# Render tile and paste at desired location
+			tile_img = _render_tile(tile_type, col, row, tile_size,
+			                        start_name=start_name, row_offset=row_offset,col_offset=col_offset)
+
+			px = MARGIN_LEFT + col * tile_size
+			py = MARGIN_TOP + row * tile_size
+
+			image.paste(tile_img, (px, py))
+
+
+	# Draw border lines
+	grid_width = PAGE_COLS * tile_size + 2 * BORDER_OUTER
+	grid_height = PAGE_ROWS * tile_size + 2 * BORDER_OUTER
+	draw = ImageDraw.Draw(image)
+
+	for col in range(1, columns):
+		x_pos = MARGIN_LEFT + col * tile_size
+		draw.line((x_pos, MARGIN_TOP, x_pos, MARGIN_TOP + grid_height - 5), fill=COLOR_BORDER, width=BORDER_INNER)
+
+	for row in range(1, rows):
+		y_pos = MARGIN_TOP + row * tile_size
+		draw.line((MARGIN_LEFT, y_pos, MARGIN_LEFT + grid_width - 5, y_pos), fill=COLOR_BORDER, width=BORDER_INNER)
+
+
+	# Handle the end block, if applicable
+	try:
+		e_col, e_row = _find_end_topleft(board_slice)
+
+		ex = MARGIN_LEFT + e_col * tile_size
+		ey = MARGIN_TOP + e_row * tile_size
+
+		end_img = _render_end_block(tile_size, end_name=end_name)
+		image.paste(end_img, (ex, ey))
+
+
+	except ValueError:
+		pass
+
+
+	# Draw a border around the whole image
+	draw.rectangle([MARGIN_LEFT, MARGIN_TOP,
+	                MARGIN_LEFT + grid_width - 5,
+	                MARGIN_TOP + grid_height - 5],
+	               outline=COLOR_BORDER, width=BORDER_OUTER)
+
+
+	# Add page number to top right
+	p_index_x = MARGIN_LEFT + grid_width + int(MARGIN_RIGHT / 2)
+	p_index_y = MARGIN_TOP + int(grid_height * 0.05)
+	font = _load_font(int(tile_size * 0.35), True)
+	label = str(page_number)
+	draw = ImageDraw.Draw(image)
+	_draw_centered_text(draw, p_index_x, p_index_y,
+	                    label, font, COLOR_TEXT)
+
+
+	# We only want to add the seed label to the last page
+	if last:
+		s_index_x = grid_width
+		s_index_y = MARGIN_TOP * 1.1 + int(grid_height)
+		font = _load_font(int(tile_size * 0.08), False)
+		label = f"Seed: {str(seed)}"
+		_draw_centered_text(draw, s_index_x, s_index_y,
+		                    label, font, COLOR_TEXT)
+
+	return image
+
 
 
 
 # Renders and saves a number of pdf pages,
 # containing the board split up into printable pages
-def save_pdf(board, output_path):
+def save_pdf(board, output_path, metadata):
 
-	pages = _split_pages(board)
+	# Creates a dictionary with pages
+	pages, (pages_wide, pages_tall) = _split_pages(board)
 
 
-	return
+	# Creates PIL renders of each page
+	page_images = []
+	last = False
+	for i,page in enumerate(pages):
+		if i == len(pages) - 1:
+			last = True
+		page_images.append(_render_page(page, metadata, last))
+
+
+
+	page_images[0].save(output_path, format="PDF", save_all=True, append_images=page_images[1:], resolution=DPI)
+
+	return pages_wide, pages_tall
+
+
+
 
 
 def render_all(board, output_dir=OUTPUT_DIR, seed=None,
@@ -408,20 +542,28 @@ def render_all(board, output_dir=OUTPUT_DIR, seed=None,
 				fullmap_filename="Full Map.png",
 				routemap_filename="Route Map.png",
 				assembly_filename="Assembly Instructions.png"):
+
+	metadata = {
+		'seed' : seed,
+		'start_name' : start_name,
+		'end_name' : end_name,
+		'tile_size' : tile_size
+	}
+
 	# Starts with generating the fully assembled map
 	full_map_path = os.path.join(output_dir, fullmap_filename)
-	board_img = compose_full_map(board, tile_size=tile_size,
-	                             start_name=start_name, end_name=end_name)
+	board_img = compose_full_map(board, metadata)
 	board_img.save(full_map_path)
 
 	# Adds a 'best route' to the full map and saves as a separate file
-	map_with_route = overlay_route(board_img.copy(), board, tile_size=tile_size, seed=seed)
+	map_with_route = overlay_route(board_img.copy(), board, metadata)
 	out_route_path = os.path.join(output_dir, routemap_filename)
 	map_with_route.save(out_route_path)
 
 	# Split the full map into 4x5 grids and create printable pdf files
 	out_pdf_path = os.path.join(output_dir, pdf_filename)
-	save_pdf(board,out_pdf_path)
+	pages_wide, pages_tall = save_pdf(board,out_pdf_path, metadata)
+
 
 
 	return
@@ -429,15 +571,4 @@ def render_all(board, output_dir=OUTPUT_DIR, seed=None,
 
 
 if __name__ == '__main__':
-	render_all(board=FullMap3,seed=42)
-
-
-
-
-
-
-	#TODO - PDG Page Slicer
-	# It is trying to make 1 inch tiles, but current map is 2 inch tiles
-
-
-
+	render_all(board=FullMap3,seed=429991)
