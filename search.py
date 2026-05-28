@@ -3,7 +3,7 @@ from map import FullMap, FullMap2, FullMap3
 
 # Max_X = 9
 # Max_Y = 7
-Max_Path = 20
+
 
 
 class Node:
@@ -153,11 +153,14 @@ def score(tile_list, board):
 
 # Finds the highest Flight Efficiency possible on the map
 def best_route_dfs(pos, fuel, board, current_path, visited, best):
+
+	# Decide max path based on the size of the board
+	max_path = len(board) + len(board[0]) + 2
 	x, y = pos
 	tile_type = board[y][x]
 
 	# Cap our route
-	if len(current_path) > Max_Path:
+	if len(current_path) > max_path:
 		return best
 
 	# Score and return if at end

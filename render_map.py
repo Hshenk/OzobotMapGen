@@ -14,7 +14,7 @@ BORDER_PAGE  = 3      # page-boundary dividers
 PAGE_COLS, PAGE_ROWS = 5, 4
 COL_LETTERS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 # If we ever need more letters, loop back to the start of this list
-START_AIRPORT_NAME = "College Park"
+START_AIRPORT_NAME = "Crater One"
 END_AIRPORT_NAME   = "Clover Field California"
 
 
@@ -275,6 +275,7 @@ def overlay_route(base_image, board, metadata):
 
 	draw = ImageDraw.Draw(base_image)
 
+	print("Now calculating best route. For maps larger than 8x10, this may take awhile...")
 	score, flight_eff, path = find_best_route(board)
 
 	dash_length = int(tile_size * 0.15)
@@ -532,7 +533,55 @@ def save_pdf(board, output_path, metadata):
 	return pages_wide, pages_tall
 
 
+def render_assembly_diagram(pages_wide, pages_tall):
 
+	rect_h = 120
+	rect_w = int(rect_h * 11 / 8.5)
+	gap = 20
+	padding = 40
+	title_space = 60
+	img_w = pages_wide * (rect_w + gap) - gap + 2 * padding
+	img_h = pages_tall * (rect_h + gap) - gap + 2 * padding + title_space
+
+
+
+	# Create a white, page-sized image
+	image = Image.new("RGB", (img_w,img_h), COLOR_EMPTY)
+
+
+	# Print a title
+	font = _load_font(int(TILE_PX * 0.12), True)
+	label = "Map Assembly Diagram"
+	draw = ImageDraw.Draw(image)
+	_draw_centered_text(draw, img_w // 2, title_space // 2, label, font, COLOR_TEXT)
+
+	font = _load_font(int(TILE_PX * 0.08), True)
+	label = f"Print all {pages_wide * pages_tall} pages, and tape them together as shown."
+	# Print instructions
+	_draw_centered_text(draw, img_w // 2, title_space, label, font, COLOR_TEXT)
+
+	label = f"There may be blank tiles that will be covered by other pages."
+	_draw_centered_text(draw, img_w // 2, title_space + 15, label, font, COLOR_TEXT)
+
+	# Print page diagrams
+	font = _load_font(int(TILE_PX * 0.2), True)
+	page_num = 1
+	for page_row in range(pages_tall):
+		for page_col in range(pages_wide):
+			rx = padding + page_col * (rect_w + gap)
+			ry = title_space + padding + page_row * (rect_h + gap)
+
+			draw.rectangle([rx, ry, rx + rect_w, ry + rect_h], outline=COLOR_BORDER, width=2)
+
+			label = f"{page_num}"
+
+			_draw_centered_text(draw, rx + rect_w // 2, ry + rect_h // 2, label, font, COLOR_TEXT)
+
+			page_num += 1
+
+
+
+	return image
 
 
 def render_all(board, output_dir=OUTPUT_DIR, seed=None,
@@ -550,23 +599,48 @@ def render_all(board, output_dir=OUTPUT_DIR, seed=None,
 		'tile_size' : tile_size
 	}
 
+	print(f"Creating printable images...")
+
 	# Starts with generating the fully assembled map
 	full_map_path = os.path.join(output_dir, fullmap_filename)
 	board_img = compose_full_map(board, metadata)
 	board_img.save(full_map_path)
+	print(f"Full map saved to {full_map_path}")
 
 	# Adds a 'best route' to the full map and saves as a separate file
-	map_with_route = overlay_route(board_img.copy(), board, metadata)
-	out_route_path = os.path.join(output_dir, routemap_filename)
-	map_with_route.save(out_route_path)
+
+	max_path = len(board) + len(board[0]) + 2
+	out_route_path = None
+	if max_path >= 21:
+		print("Map is too large to calculate best route.")
+	else:
+		map_with_route = overlay_route(board_img.copy(), board, metadata)
+		out_route_path = os.path.join(output_dir, routemap_filename)
+		map_with_route.save(out_route_path)
+		print(f"Route map saved to {full_map_path}")
+
 
 	# Split the full map into 4x5 grids and create printable pdf files
 	out_pdf_path = os.path.join(output_dir, pdf_filename)
 	pages_wide, pages_tall = save_pdf(board,out_pdf_path, metadata)
+	print(f"Printable PDF pages saved to {out_pdf_path}")
+
+	assembly_image = render_assembly_diagram(pages_wide, pages_tall)
+	out_assembly_path = os.path.join(output_dir, assembly_filename)
+	assembly_image.save(out_assembly_path)
+	print(f"Assembly Instructions saved to {out_assembly_path}")
 
 
 
-	return
+	output_paths ={
+		'Full Board' : full_map_path,
+		'Route Map' : out_route_path,
+		'Printable Pages' : out_pdf_path,
+		'Assembly Instructions' : out_assembly_path
+	}
+
+
+	return output_paths
 
 
 

@@ -1,9 +1,10 @@
 from search import dfs, find_start
 from collections import deque
 import random, math
+from render_map import render_all
 
-Length = 10
-Height = 8
+Length = 10 # Default is 10
+Height = 8 # Default is 8
 
 # This prevents the start and end tiles from generating within a certain distance of each other
 Min_Start_Dis = 10
@@ -17,6 +18,7 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 	rng = random.Random(seed)
 	board = _init_board()
 
+	print(f"Generating board with seed: {seed}...")
 
 	# Start and End lines
 	end, end_block = _get_corner_config(rng)
@@ -80,8 +82,6 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
 	if not _is_solvable(board):
 		raise Exception("Something went wrong. Generated board is unsolvable")
 
-
-	_print_board(board)
 
 	return board
 
@@ -469,9 +469,29 @@ def _validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable):
 	if total > ((Length * Height) - 5):
 		raise ValueError('Too many special tiles listed')
 
+# If a valid seed is not provided, make a new one
+def _validate_seed(seed=None):
+	if seed is None:
+		seed = random.randint(1, 999999)
+		print(f"New seed generated: {seed}")
+
+	if type(seed) is not int:
+		print("Warning, the provided see is not valid, generating new seed")
+		seed = random.randint(1, 999999)
+		print(f"New seed generated: {seed}")
+
+	if seed > 999999 or seed < 1:
+		seed = random.randint(1, 999999)
+		print("Provided seed is not between 1 and 999,999")
+		print(f"New seed generated: {seed}")
+
+	return seed
 
 
 
+seed = _validate_seed()
 
 
-generated_board = generate_map(42, 6, 4, 3, 40)
+
+generated_board = generate_map(seed, 10, 8, 7, 8)
+render_all(generated_board, seed=seed)
