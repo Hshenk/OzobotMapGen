@@ -15,6 +15,10 @@ def generate_map(seed: int, n_airports: int, n_tailwinds: int,
                n_headwinds: int, n_impassable:int):
 	_validate_inputs(n_airports, n_tailwinds, n_headwinds, n_impassable)
 
+	# If we were not given a valid seed, generate a new one
+	seed = _validate_seed()
+
+
 	rng = random.Random(seed)
 	board = _init_board()
 
@@ -488,10 +492,7 @@ def _validate_seed(seed=None):
 	return seed
 
 
+s = 420042
 
-seed = _validate_seed()
-
-
-
-generated_board = generate_map(seed, 10, 8, 7, 8)
-render_all(generated_board, seed=seed)
+generated_board = generate_map(s, 10, 8, 7, 8)
+render_all(generated_board, seed=s)

@@ -126,7 +126,15 @@ def _render_tile(tile_type, col, row, tile_size,
 
 	# Writes the top left tile label
 	if tile_type != 'start':
+		# If we go out of index range, loop back to the start
+		overflow = 0
+		while (col + col_offset) >= 26:
+			col -= 26
+			overflow += 1
+
 		label = COL_LETTERS[col + col_offset] + str(row + row_offset + 1)
+		for i in range(overflow):
+			label = COL_LETTERS[i] + label
 		font = _load_font(int(tile_size * 0.14))
 		draw.text((6, 4), label, font=font, fill=COLOR_COORD)
 
