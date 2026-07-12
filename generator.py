@@ -3,8 +3,9 @@ from collections import deque
 import random, math
 from render_map import render_all
 
-Length = 10 # Default is 10
-Height = 8 # Default is 8
+# Single page is 4 tiles high and 5 tiles wide
+Length = 30 # Default is 10
+Height = 4 # Default is 8
 
 # This prevents the start and end tiles from generating within a certain distance of each other
 Min_Start_Dis = 10
@@ -494,5 +495,5 @@ def _validate_seed(seed=None):
 
 s = 420042
 
-generated_board = generate_map(s, 10, 8, 7, 8)
+generated_board = generate_map(s, 10, 7, 7, 8)
 render_all(generated_board, seed=s)
