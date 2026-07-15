@@ -184,7 +184,6 @@ def _generate_airport_chain(start, end_block, n_spine, rng):
 			paths.append(_manhattan(current, end_tile))
 		closest_path = min(paths)
 		if closest_path <= 4:
-			# Placeholder for return value
 			return chain
 
 
