@@ -3,19 +3,107 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Ozobot Map Generator — Test Bench</title>
-	<style>
-		body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; }
-		code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; }
-	</style>
+	<title>Ozobot Map Generator</title>
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<h1>Ozobot Map Generator</h1>
-	<p><strong>Test bench mode.</strong> This placeholder page just runs
-		<code>js/checkpoint.js</code> — open the browser console (F12) to see the
-		output of whatever checkpoint code is currently in that file.</p>
-	<p>It gets replaced with the real app UI in Guide 04.</p>
+	<header class="app-header">
+		<h1>Ozobot Map Generator</h1>
+		<p class="tagline">Procedurally generated, always-solvable flight maps for the classroom</p>
+	</header>
 
-	<script type="module" src="js/checkpoint.js"></script>
+	<div class="app-layout">
+
+		<!-- ============ Controls sidebar ============ -->
+		<aside class="sidebar">
+			<form id="controls">
+				<fieldset>
+					<legend>Board size</legend>
+					<div class="field-row">
+						<label for="width">Columns
+							<input type="number" id="width" min="5" max="26" value="10">
+						</label>
+						<label for="height">Rows
+							<input type="number" id="height" min="4" max="20" value="8">
+						</label>
+					</div>
+				</fieldset>
+
+				<fieldset>
+					<legend>Special tiles</legend>
+					<div class="field-row">
+						<label for="airports">Airports
+							<input type="number" id="airports" min="1" value="10">
+						</label>
+						<label for="tailwinds">Tailwinds
+							<input type="number" id="tailwinds" min="0" value="8">
+						</label>
+					</div>
+					<div class="field-row">
+						<label for="headwinds">Headwinds
+							<input type="number" id="headwinds" min="0" value="7">
+						</label>
+						<label for="impassables">Impassable
+							<input type="number" id="impassables" min="0" value="8">
+						</label>
+					</div>
+				</fieldset>
+
+				<fieldset>
+					<legend>Details</legend>
+					<label for="seed">Seed <span class="hint">(blank = random)</span>
+						<input type="number" id="seed" min="1" max="999999" placeholder="1 – 999999">
+					</label>
+					<label for="start-name">Start airport name
+						<input type="text" id="start-name" value="College Park" maxlength="30">
+					</label>
+					<label for="end-name">End airport name
+						<input type="text" id="end-name" value="Clover Field California" maxlength="30">
+					</label>
+				</fieldset>
+
+				<button type="submit" class="btn btn-primary">Generate Map</button>
+
+				<div class="btn-row">
+					<button type="button" id="btn-autofill" class="btn btn-subtle"
+						title="Scale the tile counts to the current board size">Auto-fill Tile Count</button>
+					<button type="reset" class="btn btn-subtle"
+						title="Restore every field to its default">Reset Defaults</button>
+				</div>
+			</form>
+
+			<div class="actions">
+				<!-- State (enabled/label) is managed by main.js -->
+				<button type="button" id="btn-route" class="btn">Show Best Route</button>
+				<!-- Enabled in Guide 06 -->
+				<button type="button" id="btn-pdf" class="btn" disabled
+					title="Coming in Guide 06">Download Printable PDF</button>
+				<button type="button" id="btn-png" class="btn" disabled
+					title="Coming in Guide 06">Download Full Map PNG</button>
+			</div>
+
+			<div id="error-box" hidden></div>
+			<ul id="warnings"></ul>
+		</aside>
+
+		<!-- ============ Map display ============ -->
+		<main class="map-area">
+			<div class="map-meta">
+				<span id="seed-display"></span>
+				<span id="route-info"></span>
+			</div>
+			<div id="map-container">
+				<p class="placeholder-text">Click <strong>Generate Map</strong> to create your first board.</p>
+			</div>
+		</main>
+
+	</div>
+
+	<footer class="app-footer">
+		<p>Maps are guaranteed solvable. Same seed &rarr; same map.
+			Best-route scoring follows the classroom rules sheet.</p>
+	</footer>
+
+	<script type="module" src="js/main.js"></script>
 </body>
 </html>

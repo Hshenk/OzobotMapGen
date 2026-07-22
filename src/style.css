@@ -1,0 +1,251 @@
+/* ============ Ozobot Map Generator — app styles ============ */
+
+:root {
+	--accent: #1565c0;
+	--accent-dark: #0d47a1;
+	--bg: #f4f6f8;
+	--panel: #ffffff;
+	--border: #d5dbe1;
+	--text: #1e2530;
+	--text-soft: #5a6472;
+	--error-bg: #fdecea;
+	--error-border: #e53935;
+	--warn-bg: #fff8e1;
+	--warn-border: #f9a825;
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+	background: var(--bg);
+	color: var(--text);
+	line-height: 1.45;
+}
+
+/* ---------- Header / footer ---------- */
+
+.app-header {
+	background: var(--panel);
+	border-bottom: 1px solid var(--border);
+	padding: 1rem 1.5rem;
+}
+
+.app-header h1 { margin: 0; font-size: 1.4rem; }
+
+.tagline { margin: 0.15rem 0 0; color: var(--text-soft); font-size: 0.9rem; }
+
+.app-footer {
+	padding: 0.75rem 1.5rem;
+	color: var(--text-soft);
+	font-size: 0.8rem;
+	text-align: center;
+}
+
+/* ---------- Layout ---------- */
+
+.app-layout {
+	display: flex;
+	gap: 1.25rem;
+	padding: 1.25rem 1.5rem;
+	align-items: flex-start;
+	max-width: 1400px;
+	margin: 0 auto;
+}
+
+.sidebar {
+	flex: 0 0 290px;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+.map-area { flex: 1 1 auto; min-width: 0; }
+
+/* Stack vertically on narrow screens */
+@media (max-width: 800px) {
+	.app-layout { flex-direction: column; }
+	.sidebar { flex: 1 1 auto; width: 100%; }
+}
+
+/* ---------- Form ---------- */
+
+fieldset {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	margin: 0 0 0.9rem;
+	padding: 0.6rem 0.75rem 0.75rem;
+}
+
+legend {
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--text-soft);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 0 0.3rem;
+}
+
+label {
+	display: block;
+	font-size: 0.85rem;
+	font-weight: 500;
+	margin-bottom: 0.55rem;
+}
+
+label:last-child { margin-bottom: 0; }
+
+.hint { font-weight: 400; color: var(--text-soft); }
+
+input[type="number"],
+input[type="text"] {
+	display: block;
+	width: 100%;
+	margin-top: 0.2rem;
+	padding: 0.4rem 0.5rem;
+	font: inherit;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: #fff;
+}
+
+input:focus {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+	border-color: var(--accent);
+}
+
+.field-row {
+	display: flex;
+	gap: 0.6rem;
+}
+
+.field-row label { flex: 1 1 0; }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+	display: block;
+	width: 100%;
+	padding: 0.55rem 0.75rem;
+	margin-bottom: 0.5rem;
+	font: inherit;
+	font-weight: 600;
+	color: var(--text);
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-dark); }
+
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: var(--accent-dark);
+	color: #fff;
+}
+
+/* Two secondary buttons side by side under Generate */
+.btn-row {
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.btn-row .btn { margin-bottom: 0; }
+
+.btn-subtle {
+	font-weight: 500;
+	font-size: 0.85rem;
+	color: var(--text-soft);
+	background: var(--bg);
+}
+
+.actions { margin-top: 0.9rem; }
+
+/* Small inline spinner shown while the solver worker is running */
+.spinner {
+	display: inline-block;
+	width: 0.8em;
+	height: 0.8em;
+	margin-right: 0.35em;
+	vertical-align: -0.1em;
+	border: 2px solid var(--border);
+	border-top-color: var(--accent);
+	border-radius: 50%;
+	animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+/* ---------- Feedback: errors & warnings ---------- */
+
+#error-box {
+	margin-top: 0.75rem;
+	padding: 0.6rem 0.75rem;
+	background: var(--error-bg);
+	border: 1px solid var(--error-border);
+	border-radius: 8px;
+	font-size: 0.85rem;
+}
+
+#warnings {
+	list-style: none;
+	margin: 0.75rem 0 0;
+	padding: 0;
+}
+
+#warnings li {
+	margin-bottom: 0.4rem;
+	padding: 0.5rem 0.7rem;
+	background: var(--warn-bg);
+	border: 1px solid var(--warn-border);
+	border-radius: 8px;
+	font-size: 0.82rem;
+}
+
+/* ---------- Map area ---------- */
+
+.map-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	min-height: 1.4rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.9rem;
+	color: var(--text-soft);
+}
+
+#seed-display { font-weight: 600; }
+
+#map-container {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 0.75rem;
+}
+
+/* The generated SVG scales to fit its container */
+#map-container svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.placeholder-text {
+	text-align: center;
+	color: var(--text-soft);
+	padding: 3rem 1rem;
+}
