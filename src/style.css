@@ -12,6 +12,9 @@
 	--error-border: #e53935;
 	--warn-bg: #fff8e1;
 	--warn-border: #f9a825;
+	--sky-panel: #b4e0f4;   /* handout-style panel blue */
+	--sky-border: #8ecbe8;
+	--navy: #10375c;        /* handout title/text navy */
 }
 
 * { box-sizing: border-box; }
@@ -91,24 +94,33 @@ body {
 	text-align: center;
 	margin: 0 0 1.25rem;
 	font-size: 1.6rem;
+	color: var(--navy);
 }
 
+/* One big sky-blue panel holding the tile rows, like the handout. */
 .tile-cards {
 	list-style: none;
 	margin: 0;
-	padding: 0;
+	padding: 1.25rem;
 	display: grid;
 	gap: 1rem;
+	background: var(--sky-panel);
+	border: 1px solid var(--sky-border);
+	border-radius: 16px;
 }
 
 .tile-card {
 	display: flex;
 	gap: 1.1rem;
-	align-items: flex-start;
-	background: var(--panel);
-	border: 1px solid var(--border);
+	align-items: center;
+}
+
+/* The description sits in a white rounded box on the blue panel. */
+.tile-body {
+	flex: 1;
+	background: #fff;
 	border-radius: 12px;
-	padding: 1.1rem 1.25rem;
+	padding: 1rem 1.15rem;
 }
 
 .tile-badge {
@@ -182,74 +194,138 @@ body {
 .score-actions .btn { width: auto; }
 
 .score-panel {
-	background: #e8f4fb;               /* soft sky blue, echoing the handout */
-	border: 1px solid #bfe0f0;
-	border-radius: 12px;
-	padding: 1.1rem 1.25rem;
-	margin-bottom: 1rem;
+	background: var(--sky-panel);       /* saturated sky blue, like the handout */
+	border: 1px solid var(--sky-border);
+	border-radius: 16px;
+	padding: 1.25rem;
+	margin-bottom: 1.1rem;
 }
 
 .score-panel h2 {
-	margin: 0 0 0.9rem;
+	margin: 0 0 1.1rem;
 	text-align: center;
-	font-size: 1.25rem;
+	font-size: 1.3rem;
+	color: var(--navy);
 }
 
-.score-inputs {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 0.75rem;
+/* A horizontal row of circles and math symbols; wraps on small screens. */
+.equation {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem 0.7rem;
 }
 
-.score-inputs label {
-	font-size: 0.85rem;
+/* A labeled term = circle above, caption below. */
+.term {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.35rem;
+	cursor: pointer;
+}
+
+.term-label {
+	font-size: 0.82rem;
 	font-weight: 600;
-	text-align: center;
+	color: var(--navy);
 }
 
-.score-inputs input {
-	margin-top: 0.3rem;
+/* The ring is the outer element (its background is the ring color);
+   .circle-face is the white inside. Padding = ring thickness. */
+.circle {
+	display: inline-flex;
+	padding: 6px;
+	border-radius: 50%;
+	background: var(--border);          /* overridden by a ring-* class */
+}
+
+.circle-face {
+	width: 88px;
+	height: 88px;
+	border-radius: 50%;
+	background: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.7rem;
+	font-weight: 700;
+	color: var(--navy);
+}
+
+/* Total Spaces is a rounded square in the handout, not a circle. */
+.circle-square,
+.circle-square .circle-face { border-radius: 20px; }
+
+/* Smaller circles for the equation operands. */
+.circle-sm .circle-face { width: 58px; height: 58px; font-size: 1.2rem; }
+
+/* Result circles: slightly bigger, accent-colored number. Smaller font so a
+   value like "88.9%" stays inside the circle. */
+.circle-result .circle-face {
+	width: 78px;
+	height: 78px;
+	color: var(--accent-dark);
+	font-size: 1.3rem;
+}
+
+/* Ring colors, matching the map / rules palette. */
+.ring-airport { background: #1976d2; }
+.ring-tailwind { background: #43a047; }
+.ring-headwind { background: #f9a825; }
+.ring-total { background: #37474f; }
+/* Gradient rings for the two computed results. */
+.ring-points { background: linear-gradient(135deg, #ff8a3d, #ff5c8a); }
+.ring-efficiency { background: linear-gradient(135deg, #7b5cd6, #e05c9e); }
+
+/* Number inputs sit borderless inside their circle face.
+   Scoped as `.circle-face .circle-input` (specificity 0,2,0) so it overrides
+   the general form rule `input[type="number"]` (0,1,1), which would otherwise
+   paint a white bordered box with padding on top of the circle. */
+.circle-face .circle-input {
+	width: 100%;
+	height: 100%;
+	min-width: 0;                       /* don't let flex min-content overflow the circle */
+	margin: 0;                          /* kill the form rule's margin-top */
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;            /* let the circle face show through */
 	text-align: center;
-	font-size: 1.1rem;
+	font-size: 1.4rem;
+	font-weight: 700;
+	color: var(--navy);
+	-moz-appearance: textfield;         /* hide Firefox spinner */
+}
+.circle-face .circle-input:focus { outline: none; }
+.circle-input::-webkit-inner-spin-button,
+.circle-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Accessible focus cue on the whole circle instead of the input. */
+.circle:focus-within { box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.35); }
+
+/* The big math symbols between circles. */
+.op {
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: var(--navy);
 }
 
 .score-note {
-	margin: 0.9rem 0 0;
+	margin: 1.1rem 0 0;
 	font-size: 0.78rem;
-	color: var(--text-soft);
+	color: var(--navy);
+	opacity: 0.75;
 	text-align: center;
-}
-
-.score-formula {
-	margin: 0;
-	text-align: center;
-	font-size: 1.15rem;
-	font-weight: 600;
-}
-
-/* The live-computed result: big and accented. */
-.score-formula output {
-	display: inline-block;
-	min-width: 3.5rem;
-	margin-left: 0.4rem;
-	padding: 0.1rem 0.6rem;
-	font-size: 1.6rem;
-	font-weight: 700;
-	color: var(--accent-dark);
-	background: #fff;
-	border-radius: 8px;
 }
 
 .score-caption {
-	margin: 0.5rem 0 0;
+	margin: 0.7rem 0 0;
 	text-align: center;
-	font-size: 0.85rem;
-	color: var(--text-soft);
-}
-
-/* Stack the four inputs into two columns on narrow screens. */
-@media (max-width: 560px) {
-	.score-inputs { grid-template-columns: repeat(2, 1fr); }
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--navy);
 }
 
 .app-footer {

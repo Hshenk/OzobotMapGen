@@ -8,6 +8,12 @@ const totalInput = document.querySelector('#in-total');
 const pointsOutput = document.querySelector('#out-points');
 const efficiencyOutput = document.querySelector('#out-efficiency');
 const scoreForm = document.querySelector('#score-form');
+// Circles
+const vAirports = document.querySelector('#v-airports');
+const vTailwinds = document.querySelector('#v-tailwinds');
+const vHeadwinds = document.querySelector('#v-headwinds');
+const vPoints = document.querySelector('#v-points');
+const vTotal = document.querySelector('#v-total');
 
 function recompute() {
     const airports = Number(airportInput.value) ?? 0;
@@ -24,6 +30,12 @@ function recompute() {
     } else {
         efficiencyOutput.textContent = '-';
     }
+
+    vAirports.textContent = airports;
+    vTailwinds.textContent = tailwinds;
+    vHeadwinds.textContent = headwinds;
+    vPoints.textContent = points;
+    vTotal.textContent = total;
 
 }
 

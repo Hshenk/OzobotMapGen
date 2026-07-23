@@ -30,44 +30,75 @@
 		</div>
 
 		<form id="score-form">
-			<!-- Section 1: the four hand-counted inputs -->
+			<!-- Section 1: the four hand-counted inputs, each in a colored ring -->
 			<section class="score-panel">
 				<h2>Record Your Flight Path</h2>
-				<div class="score-inputs">
-					<label for="in-airports">Airports
-						<input type="number" id="in-airports" min="0" value="0">
+				<div class="equation">
+					<label class="term" for="in-airports">
+						<span class="circle ring-airport"><span class="circle-face">
+							<input type="number" id="in-airports" min="0" value="0" class="circle-input">
+						</span></span>
+						<span class="term-label">Airports</span>
 					</label>
-					<label for="in-tailwinds">Tailwinds
-						<input type="number" id="in-tailwinds" min="0" value="0">
+					<label class="term" for="in-tailwinds">
+						<span class="circle ring-tailwind"><span class="circle-face">
+							<input type="number" id="in-tailwinds" min="0" value="0" class="circle-input">
+						</span></span>
+						<span class="term-label">Tailwinds</span>
 					</label>
-					<label for="in-headwinds">Headwinds
-						<input type="number" id="in-headwinds" min="0" value="0">
+					<label class="term" for="in-headwinds">
+						<span class="circle ring-headwind"><span class="circle-face">
+							<input type="number" id="in-headwinds" min="0" value="0" class="circle-input">
+						</span></span>
+						<span class="term-label">Headwinds</span>
 					</label>
-					<label for="in-total">Total Spaces
-						<input type="number" id="in-total" min="0" value="0">
+					<label class="term" for="in-total">
+						<span class="circle circle-square ring-total"><span class="circle-face">
+							<input type="number" id="in-total" min="0" value="0" class="circle-input">
+						</span></span>
+						<span class="term-label">Total Spaces</span>
 					</label>
 				</div>
 				<p class="score-note">Passing through a tile a second time counts toward total spaces
 					moved but does not score its color again. Do not count the start or end tiles.</p>
 			</section>
 
-			<!-- Section 2: points, computed live -->
+			<!-- Section 2: points, computed live. Operand circles echo the inputs
+			     (filled by score.js); color carries which is which. -->
 			<section class="score-panel">
 				<h2>Add Up Your Points</h2>
-				<p class="score-formula">
-					(Airports &times; 2) + (Tailwinds &minus; Headwinds) =
-					<output id="out-points" for="in-airports in-tailwinds in-headwinds">0</output>
-				</p>
+				<div class="equation">
+					<span class="circle circle-sm ring-airport"><span class="circle-face" id="v-airports">0</span></span>
+					<span class="op">&times;2</span>
+					<span class="op">+</span>
+					<span class="op">(</span>
+					<span class="circle circle-sm ring-tailwind"><span class="circle-face" id="v-tailwinds">0</span></span>
+					<span class="op">&minus;</span>
+					<span class="circle circle-sm ring-headwind"><span class="circle-face" id="v-headwinds">0</span></span>
+					<span class="op">)</span>
+					<span class="op">=</span>
+					<span class="circle circle-result ring-points"><span class="circle-face">
+						<output id="out-points" for="in-airports in-tailwinds in-headwinds">0</output>
+					</span></span>
+				</div>
 				<p class="score-caption">Points Scored</p>
 			</section>
 
 			<!-- Section 3: efficiency, computed live -->
 			<section class="score-panel">
 				<h2>Calculate Your Flight Efficiency</h2>
-				<p class="score-formula">
-					(Points Scored &divide; Total Spaces) &times; 100 =
-					<output id="out-efficiency" for="out-points in-total">&mdash;</output>
-				</p>
+				<div class="equation">
+					<span class="op">(</span>
+					<span class="circle circle-sm ring-points"><span class="circle-face" id="v-points">0</span></span>
+					<span class="op">&divide;</span>
+					<span class="circle circle-sm circle-square ring-total"><span class="circle-face" id="v-total">0</span></span>
+					<span class="op">)</span>
+					<span class="op">&times;100</span>
+					<span class="op">=</span>
+					<span class="circle circle-result ring-efficiency"><span class="circle-face">
+						<output id="out-efficiency" for="out-points in-total">&mdash;</output>
+					</span></span>
+				</div>
 				<p class="score-caption">Flight Efficiency (Final Score)</p>
 			</section>
 		</form>
