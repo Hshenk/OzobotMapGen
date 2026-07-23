@@ -5,3 +5,4 @@ docs/
 __pycache__/
 worksheets/
 src/test-data/
+src/js/checkpoint.js
