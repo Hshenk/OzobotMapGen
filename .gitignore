@@ -4,3 +4,4 @@ docs/
 .idea/
 __pycache__/
 worksheets/
+src/test-data/
