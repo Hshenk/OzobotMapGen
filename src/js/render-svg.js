@@ -16,20 +16,36 @@ const TILE_COLORS = {
     [END] : '#87ceeb',
 };
 
-const ICON_URLS = {
-	[AIRPORT]: 'icons/airport.svg',
-	[TAILWIND]: 'icons/tailwind.svg',
-	[HEADWIND]: 'icons/headwind.svg',
-	[IMPASSABLE]: 'icons/impassable.svg',
-	[START]: 'icons/start.svg',
-	[END]: 'icons/end.svg',
+const ICON_FILES = {
+	[AIRPORT]: 'airport.svg',
+	[TAILWIND]: 'tailwind.svg',
+	[HEADWIND]: 'headwind.svg',
+	[IMPASSABLE]: 'impassable.svg',
+	[START]: 'start.svg',
+	[END]: 'end.svg',
 };
 
-const COLOR_BORDER = '#000000';
+const iconHrefs = {};
+
+export const COLOR_BORDER = '#000000';
 const COLOR_COORD = '#b4b4b4';
-const COLOR_TEXT = '#1e1e1e';
+export const COLOR_TEXT = '#1e1e1e';
 export const COLOR_ROUTE = '#0050c8';
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+
+export async function loadIcons(basePath = 'icons/') {
+    const jobs = Object.entries(ICON_FILES).map(async([tileType, file]) => {
+        const response = await fetch(basePath + file);
+        if (!response.ok) {
+            throw new Error(`Could not load icon ${file}`);
+        }
+        const markup = await response.text();
+		iconHrefs[tileType] = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+    });
+
+    await Promise.all(jobs);
+}
 
 
 /**
@@ -75,6 +91,7 @@ function escapeXml(text) {
 export function renderBoardSvg(board, {
     startName = 'College Park',
     endName = 'CloverField California',
+    routePath = null,
 } = {}) {
     const { width, height } = boardSize(board);
     const svgWidth = width * TILE + 2 * OUTER;
@@ -95,28 +112,9 @@ export function renderBoardSvg(board, {
 
             const px = OUTER + col * TILE;
             const py = OUTER + row * TILE;
+            const label = tileType === START ? null : tileLabel(col, row);
 
-            parts.push(`<rect x="${px}" y="${py}" width="${TILE}" height="${TILE}" fill="${TILE_COLORS[tileType]}" />`);
-
-            // Coordinate Label
-            if (tileType !== START) {
-                parts.push(`<text x="${px + 5}" y="${py + 16}" font-size="14" fill="${COLOR_COORD}">${tileLabel(col, row)}</text>`);
-            }
-
-            // Icon
-            if (tileType !== EMPTY) {
-                const iconSize  = tileType === IMPASSABLE ? TILE * 0.75 : TILE * 0.55;
-                const iconX = px + (TILE - iconSize) / 2;
-                // Start icon must be a little lower
-                const iconY = tileType === START ? py + TILE * 0.22 : py + (TILE - iconSize) / 2;
-                parts.push(`<image href="${ICON_URLS[tileType]}" x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" />`);
-            }
-
-            // The start tile carries its airport name and prompt 
-            if (tileType === START) {
-				parts.push(`<text x="${px + TILE / 2}" y="${py + TILE * 0.15}" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="${COLOR_TEXT}">${escapeXml(startName)}</text>`);
-				parts.push(`<text x="${px + TILE / 2}" y="${py + TILE * 0.85}" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="${COLOR_TEXT}">Start Here</text>`);
-            }
+            parts.push(tileSvg(tileType, px, py, TILE, label, startName));
         }
     }
 
@@ -133,22 +131,80 @@ export function renderBoardSvg(board, {
     // --- Layer 3: 2x2 End block ---
     // Drawn after the grid so it covers up the grid lines
     const [endCol, endRow] = findEndTopLeft(board);
-    const ex = OUTER + endCol * TILE;
-    const ey = OUTER + endRow * TILE;
-    const blockSize = TILE * 2;
-
-    parts.push(`<rect x="${ex}" y="${ey}" width="${blockSize}" height="${blockSize}" fill="${TILE_COLORS[END]}" />`);
-	parts.push(`<image href="${ICON_URLS[END]}" x="${ex + TILE / 2}" y="${ey + TILE / 2}" width="${TILE}" height="${TILE}" />`);
-	parts.push(`<text x="${ex + TILE}" y="${ey + TILE * 0.15}" font-size="17" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="${COLOR_TEXT}">${escapeXml(endName)}</text>`);
-	parts.push(`<text x="${ex + TILE}" y="${ey + TILE * 1.80}" font-size="17" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="${COLOR_TEXT}">End Here</text>`);
-
+    parts.push(endBlockSvg(OUTER + endCol * TILE, OUTER + endRow * TILE, TILE, endName));
 
     // --- Layer 4: outer border ---
     parts.push(`<rect x="${OUTER / 2}" y="${OUTER / 2}" width="${svgWidth - OUTER}" height="${svgHeight - OUTER}" fill="none" stroke="${COLOR_BORDER}" stroke-width="${OUTER}" />`);
 
     // --- Layer 5: route overlay mount point ---
-    parts.push('<g id="route-layer"></g>');
+	parts.push(`<g id="route-layer">${routePath === null ? '' : routeOverlaySvg(routePath)}</g>`);
+
 
     parts.push('</svg>');
     return parts.join('\n');
+}
+
+// Builds the SVG for route overlay. Returns the inner markup for #route-layer
+export function routeOverlaySvg(path) {
+    const center = (x, y) => [OUTER + x * TILE + TILE / 2, OUTER + y * TILE + TILE / 2];
+
+    const points = path.map(([x, y]) => center(x, y).join(',')).join(' ');
+
+    const parts = [];
+	parts.push(`<polyline points="${points}" fill="none" stroke="${COLOR_ROUTE}" stroke-width="6" stroke-dasharray="16 10" stroke-linecap="round" stroke-linejoin="round" />`);
+
+    // Dot for each tile
+    for (const [x, y] of path) {
+        const [cx, cy] = center(x, y);
+		parts.push(`<circle cx="${cx}" cy="${cy}" r="7" fill="${COLOR_ROUTE}" />`);
+    }
+
+    return parts.join('\n');
+}
+
+// One <text> centered on (x, y) used for start/end
+function centeredText(x, y, text, size) {
+	return `<text x="${x}" y="${y}" font-size="${size}" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="${COLOR_TEXT}">${escapeXml(text)}</text>`;
+}
+
+export function tileSvg(tileType, px, py, tile, label, startName) {
+    const parts = [];
+    parts.push(`<rect x="${px}" y="${py}" width="${tile}" height="${tile}" fill="${TILE_COLORS[tileType]}" />`);
+
+	if (label !== null) {
+		parts.push(`<text x="${px + tile * 0.05}" y="${py + tile * 0.16}" font-size="${tile * 0.14}" fill="${COLOR_COORD}">${label}</text>`);
+	}
+
+    if (tileType !== EMPTY) {
+        const iconSize = tileType === IMPASSABLE ? tile * 0.75 : tile * 0.55;
+        const iconX = px + (tile - iconSize) / 2;
+        const iconY = tileType === START ? py + tile * 0.22 : py + (tile - iconSize) / 2;
+        parts.push(`<image href="${iconHrefs[tileType]}" x="${iconX}" y="${iconY}" width="${iconSize}" height="${iconSize}" />`);
+    }
+
+    if (tileType === START) {
+        parts.push(centeredText(px + tile / 2, py + tile * 0.15, startName, tile * 0.14));
+        parts.push(centeredText(px + tile / 2, py + tile * 0.85, 'Start Here', tile * 0.14));
+    }
+
+    return parts.join('\n');
+}
+
+// Draws the 2x2 end block with its top-left corner at (ex, ey)
+export function endBlockSvg(ex, ey, tile, endName) {
+    const size = tile * 2;
+    const parts = [];
+
+	parts.push(`<rect x="${ex}" y="${ey}" width="${size}" height="${size}" fill="${TILE_COLORS[END]}" />`);
+	parts.push(`<image href="${iconHrefs[END]}" x="${ex + tile / 2}" y="${ey + tile / 2}" width="${tile}" height="${tile}" />`);
+	parts.push(centeredText(ex + tile, ey + tile * 0.15, endName, tile * 0.17));
+	parts.push(centeredText(ex + tile, ey + tile * 1.80, 'End Here', tile * 0.17));
+
+    return parts.join('\n');
+}
+
+// The SVG-unit size of a rendered board
+export function boardSvgSize(board) {
+    const { width, height } = boardSize(board);
+    return { width: width * TILE + 2 * OUTER, height: height * TILE + 2 * OUTER };
 }

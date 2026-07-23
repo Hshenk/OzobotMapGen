@@ -249,3 +249,51 @@ input:focus {
 	color: var(--text-soft);
 	padding: 3rem 1rem;
 }
+
+.print-hint {
+	margin: 0.6rem 0 0;
+	font-size: 0.78rem;
+	line-height: 1.4;
+	color: var(--text-soft);
+}
+
+/* ---------- Printable output ---------- */
+
+/* The print pages exist in the DOM but are invisible on screen. */
+#print-root { display: none; }
+
+/* Letter landscape with no browser-added margins: the page SVGs are
+   exactly 11in x 8.5in, so tiles land at their true physical size. */
+@page {
+	size: letter landscape;
+	margin: 0;
+}
+
+@media print {
+	/* Hide the whole app; show only the printable pages. */
+	.app-header,
+	.app-layout,
+	.app-footer { display: none !important; }
+
+	#print-root { display: block; }
+
+	.print-page {
+		width: 11in;
+		height: 8.5in;
+		overflow: hidden;          /* clip anything past the page edge */
+		break-after: page;
+		page-break-after: always;  /* older browsers */
+	}
+
+	/* No trailing blank page after the last sheet. */
+	.print-page:last-child {
+		break-after: auto;
+		page-break-after: auto;
+	}
+
+	.print-page svg {
+		display: block;
+		width: 11in;
+		height: 8.5in;
+	}
+}

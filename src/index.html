@@ -75,11 +75,14 @@
 			<div class="actions">
 				<!-- State (enabled/label) is managed by main.js -->
 				<button type="button" id="btn-route" class="btn">Show Best Route</button>
-				<!-- Enabled in Guide 06 -->
-				<button type="button" id="btn-pdf" class="btn" disabled
-					title="Coming in Guide 06">Download Printable PDF</button>
-				<button type="button" id="btn-png" class="btn" disabled
-					title="Coming in Guide 06">Download Full Map PNG</button>
+				<button type="button" id="btn-print" class="btn">Print Map Pages</button>
+				<button type="button" id="btn-assembly" class="btn">Print Assembly Diagram</button>
+				<button type="button" id="btn-png" class="btn">Download Full Map PNG</button>
+				<button type="button" id="btn-route-png" class="btn" disabled
+					title="Show the best route first">Download Best Route PNG</button>
+				<p class="print-hint">In the print dialog pick <strong>Landscape</strong>,
+					scale <strong>100%</strong>, and margins <strong>None</strong> so tiles
+					come out at their true 2.05&Prime; size.</p>
 			</div>
 
 			<div id="error-box" hidden></div>
@@ -98,6 +101,10 @@
 		</main>
 
 	</div>
+
+	<!-- Filled by main.js with one <section class="print-page"> per printable
+	     page. Hidden on screen; the only thing visible when printing. -->
+	<div id="print-root"></div>
 
 	<footer class="app-footer">
 		<p>Maps are guaranteed solvable. Same seed &rarr; same map.
