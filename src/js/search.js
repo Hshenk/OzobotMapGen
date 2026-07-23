@@ -109,8 +109,9 @@ export function findBestRoute(board) {
             if (efficiency > best.efficiency) {
                 best.efficiency = efficiency;
                 best.path = path.map((p) => [p[0], p[1]]);
-                return;
+
             }
+            return;
         }
 
         // Refuel
