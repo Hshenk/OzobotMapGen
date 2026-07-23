@@ -36,6 +36,222 @@ body {
 
 .tagline { margin: 0.15rem 0 0; color: var(--text-soft); font-size: 0.9rem; }
 
+/* ---------- Tab bar (shared across pages) ---------- */
+
+.tab-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	padding: 0 1.5rem;
+	background: var(--panel);
+	border-bottom: 1px solid var(--border);
+}
+
+.tab {
+	padding: 0.6rem 1rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-soft);
+	text-decoration: none;
+	border-bottom: 3px solid transparent;  /* reserve space so nothing shifts */
+	margin-bottom: -1px;                    /* overlap the bar's own border */
+}
+
+.tab:hover { color: var(--accent-dark); }
+
+/* The tab for the current page. aria-current="page" is set in the HTML,
+   so the styling and the accessibility state can never disagree. */
+.tab[aria-current="page"] {
+	color: var(--accent-dark);
+	border-bottom-color: var(--accent);
+}
+
+.tab-external { color: var(--text-soft); }
+
+/* ---------- Simple content page (rules / score tabs) ---------- */
+
+.page {
+	max-width: 900px;
+	margin: 1.5rem auto;
+	padding: 0 1.5rem;
+}
+
+/* ---------- Activity Rules tab ---------- */
+
+.rules-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 1rem;
+}
+
+/* The download button should hug its text, not stretch full width. */
+.rules-actions .btn { width: auto; }
+
+.rules-title {
+	text-align: center;
+	margin: 0 0 1.25rem;
+	font-size: 1.6rem;
+}
+
+.tile-cards {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 1rem;
+}
+
+.tile-card {
+	display: flex;
+	gap: 1.1rem;
+	align-items: flex-start;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 1.1rem 1.25rem;
+}
+
+.tile-badge {
+	flex: 0 0 auto;
+	width: 92px;
+	height: 92px;
+	border-radius: 50%;
+	background: #fff;
+	border: 6px solid var(--border);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.tile-badge img {
+	width: 52px;
+	height: 52px;
+}
+
+/* Per-tile ring colors, matching the map palette. */
+.tile-badge-airport { border-color: #1976d2; }
+.tile-badge-tailwind { border-color: #43a047; }
+.tile-badge-headwind { border-color: #f9a825; }
+.tile-badge-impassable { border-color: #e53935; }
+
+.tile-body h3 {
+	margin: 0.1rem 0 0.6rem;
+	font-size: 1.15rem;
+}
+
+/* The one-line summary after each tile name, in softer weight. */
+.tile-summary {
+	display: block;
+	font-size: 0.9rem;
+	font-weight: 400;
+	color: var(--text-soft);
+	margin-top: 0.1rem;
+}
+
+.tile-body p {
+	margin: 0 0 0.5rem;
+	font-size: 0.9rem;
+}
+
+.tile-body p:last-child { margin-bottom: 0; }
+
+.rules-footnote {
+	margin: 1.25rem 0 0;
+	padding: 0.85rem 1rem;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	font-size: 0.82rem;
+	color: var(--text-soft);
+}
+
+/* Stack the badge above the text on narrow screens. */
+@media (max-width: 560px) {
+	.tile-card { flex-direction: column; align-items: center; text-align: center; }
+	.tile-summary { text-align: center; }
+}
+
+/* ---------- Score Calculator tab ---------- */
+
+.score-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 1rem;
+}
+
+.score-actions .btn { width: auto; }
+
+.score-panel {
+	background: #e8f4fb;               /* soft sky blue, echoing the handout */
+	border: 1px solid #bfe0f0;
+	border-radius: 12px;
+	padding: 1.1rem 1.25rem;
+	margin-bottom: 1rem;
+}
+
+.score-panel h2 {
+	margin: 0 0 0.9rem;
+	text-align: center;
+	font-size: 1.25rem;
+}
+
+.score-inputs {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 0.75rem;
+}
+
+.score-inputs label {
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-align: center;
+}
+
+.score-inputs input {
+	margin-top: 0.3rem;
+	text-align: center;
+	font-size: 1.1rem;
+}
+
+.score-note {
+	margin: 0.9rem 0 0;
+	font-size: 0.78rem;
+	color: var(--text-soft);
+	text-align: center;
+}
+
+.score-formula {
+	margin: 0;
+	text-align: center;
+	font-size: 1.15rem;
+	font-weight: 600;
+}
+
+/* The live-computed result: big and accented. */
+.score-formula output {
+	display: inline-block;
+	min-width: 3.5rem;
+	margin-left: 0.4rem;
+	padding: 0.1rem 0.6rem;
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: var(--accent-dark);
+	background: #fff;
+	border-radius: 8px;
+}
+
+.score-caption {
+	margin: 0.5rem 0 0;
+	text-align: center;
+	font-size: 0.85rem;
+	color: var(--text-soft);
+}
+
+/* Stack the four inputs into two columns on narrow screens. */
+@media (max-width: 560px) {
+	.score-inputs { grid-template-columns: repeat(2, 1fr); }
+}
+
 .app-footer {
 	padding: 0.75rem 1.5rem;
 	color: var(--text-soft);

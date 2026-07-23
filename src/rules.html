@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Activity Rules — Ozobot Map Generator</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<header class="app-header">
+		<h1>Activity Rules</h1>
+		<p class="tagline">Types of tiles and how they score</p>
+	</header>
+
+	<!-- Shared tab bar. Copy verbatim into every page; set aria-current="page"
+	     on the tab for THIS page (here: Activity Rules). -->
+	<nav class="tab-bar" aria-label="Site sections">
+		<a href="index.html" class="tab">Map Generator</a>
+		<a href="rules.html" class="tab" aria-current="page">Activity Rules</a>
+		<a href="score.html" class="tab">Score Calculator</a>
+		<a href="https://canva.link/ln92ehll5jigmfg" class="tab tab-external"
+			target="_blank" rel="noopener">Presentation &#8599;</a>
+	</nav>
+
+	<main class="page rules-page">
+		<div class="rules-actions">
+			<a class="btn btn-primary" href="downloads/ozobot-reference-sheet.pdf" download>
+				Download Printable Sheet (PDF)
+			</a>
+		</div>
+
+		<h2 class="rules-title">Types of Tiles</h2>
+
+		<ul class="tile-cards">
+			<li class="tile-card">
+				<div class="tile-badge tile-badge-airport"><img src="icons/airport.svg" alt=""></div>
+				<div class="tile-body">
+					<h3>Airports<span class="tile-summary">add to your final score and allow the plane to refuel</span></h3>
+					<p><strong>Points:</strong> Airports are the main way to score points and are worth
+						twice as much as tailwinds towards your final flight efficiency.</p>
+					<p><strong>Refuel:</strong> The airplane's fuel is reset to three, allowing the bot to
+						travel three tiles after leaving the airport.</p>
+					<p><strong>Code:</strong> To refuel and score a point, the Ozobot must do the "Spin",
+						"Tornado", or a flashing light command on an airport tile.</p>
+				</div>
+			</li>
+
+			<li class="tile-card">
+				<div class="tile-badge tile-badge-tailwind"><img src="icons/tailwind.svg" alt=""></div>
+				<div class="tile-body">
+					<h3>Tailwinds<span class="tile-summary">speed up the plane and add to our final score</span></h3>
+					<p><strong>Points:</strong> Passing through more tailwinds than headwinds will add
+						points to your flight efficiency.</p>
+					<p><strong>Code (Optional):</strong> When passing through a tailwind, have the Ozobot
+						speed up! If the Ozobot is already going fast, you do not have to speed up again.</p>
+				</div>
+			</li>
+
+			<li class="tile-card">
+				<div class="tile-badge tile-badge-headwind"><img src="icons/headwind.svg" alt=""></div>
+				<div class="tile-body">
+					<h3>Headwinds<span class="tile-summary">slow down the plane and subtract from our final score</span></h3>
+					<p><strong>Points:</strong> Passing through more tailwinds than headwinds will add
+						points to your flight efficiency.</p>
+					<p><strong>Code (Optional):</strong> When passing through a headwind, have the Ozobot
+						slow down! If the Ozobot is already going slow, you do not have to slow down again.</p>
+				</div>
+			</li>
+
+			<li class="tile-card">
+				<div class="tile-badge tile-badge-impassable"><img src="icons/impassable.svg" alt=""></div>
+				<div class="tile-body">
+					<h3>Impassable<span class="tile-summary">these tiles cannot be crossed</span></h3>
+					<p>Maybe there is a mountain in the way, or a restricted air space, but our airplane
+						does not have the ability to cross through this location!</p>
+				</div>
+			</li>
+		</ul>
+
+		<p class="rules-footnote">The Ozobot starts with three fuel and can travel three tiles before it
+			must refuel on an airport. Passing through a tile a second time counts toward total spaces
+			moved but does not score its color again.</p>
+	</main>
+
+	<footer class="app-footer">
+		<p>College Park Aviation Museum &amp; the Wings for Val Foundation</p>
+	</footer>
+</body>
+</html>
