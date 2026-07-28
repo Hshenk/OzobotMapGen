@@ -363,7 +363,7 @@ function placeExtraAirports(spineAirports, nExtra, board, rng, width, height, wa
                     board[y][x] === EMPTY &&
                     !candidateKeys.has(posKey([x, y]))) {
                         candidates.push([x, y]);
-                        candidateKeys.add(posKey(x, y));
+                        candidateKeys.add(posKey([x, y]));
                     }
             }
         }
@@ -427,7 +427,7 @@ function placeImpassable(nImpassable, board, protectedSet, rng, warnings, height
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            if (board[y][x] === EMPTY && !protectedSet.has(posKey(x, y))) {
+            if (board[y][x] === EMPTY && !protectedSet.has(posKey([x, y]))) {
                 candidates.push([x, y]);
             }
         }
