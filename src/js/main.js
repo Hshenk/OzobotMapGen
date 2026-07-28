@@ -1,4 +1,3 @@
-import { canFindBestRoute } from "./search.js";
 import { generateMap } from "./generator.js";
 import { renderBoardSvg, routeOverlaySvg, loadIcons, boardSvgSize } from "./render-svg.js";
 import { buildMapPages, buildAssemblyPage } from "./render-print.js";
@@ -27,6 +26,7 @@ const assemblyButton = document.querySelector('#btn-assembly');
 const pngButton = document.querySelector('#btn-png');
 const routePngButton = document.querySelector('#btn-route-png');
 const printRoot = document.querySelector('#print-root');
+const routeEstimate = document.querySelector('#route-estimate');
 
 // Default board defines the tile density we scale from for larger board defaults
 // 80 tiles -> 10 airports, 8tw, 7hw, 8im
@@ -81,6 +81,7 @@ function showRoute(route) {
     routeInfo.textContent = `Best route - score ${finalScore}, efficiency ${efficiency.toFixed(1)}%`;
     routeShown = true;
     routeButton.disabled = false;
+    routeEstimate.hidden = (route.exact !== false);
     routeButton.textContent = 'Hide Route';
     routePngButton.disabled = false;
 }
@@ -102,7 +103,7 @@ function onRouteClick() {
     solving = true;
     routeButton.disabled = true;
     routeButton.textContent = 'Solving...';
-	routeInfo.innerHTML = '<span class="spinner"></span> Calculating best route…';
+    routeInfo.innerHTML = '<span class="spinner"></span> Searching for the best route — large boards may take up to a minute…';
     solver.postMessage(current.board);
 }
 
@@ -114,6 +115,7 @@ function hideRoute() {
     routeShown = false;
     routeInfo.textContent = '';
     routeButton.textContent = 'Show Best Route';
+    routeEstimate.hidden = true;
 }
 
 function resetRoute() {
@@ -127,14 +129,11 @@ function resetRoute() {
     routeButton.textContent = 'Show Best Route';
     currentRoute = null;
     routePngButton.disabled = true;
+    routeEstimate.hidden = true;
 
-    if (canFindBestRoute(current.board)) {
-        routeButton.disabled = false;
-        routeButton.title = '';
-    } else {
-        routeButton.disabled = true;
-        routeButton.title = 'Board too large to compute the best route';
-    }
+
+    routeButton.disabled = false;
+    routeButton.title = '';
 }
 
 function readOptions() {

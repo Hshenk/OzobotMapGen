@@ -87,18 +87,28 @@ export function scoreRoute(path, board) {
 }
 
 
-
-export function findBestRoute(board) {
+// Uses a DFS on a timer 
+export function findBestRoute(board, { deadlineMs = Infinity } = {}) {
     const start = findStart(board);
     const endBlock = findEnd(board);
     const { width, height } = boardSize(board);
     const maxPath = width + height + 2;
+    const deadline = performance.now() + deadlineMs;
+    let timedOut = false;
+    const stepsToEnd = buildStepsToEnd(board);
 
     const best = { efficiency: -Infinity, path: null };
     const path = [start];
     const visited = new Set([stateKey(start[0], start[1], 3)]);
 
     function explore(x, y, fuel) {
+        // If we're taking too long, break and return so that we can try beam sort
+        if (timedOut) return;
+        if (performance.now() > deadline) {
+            timedOut = true;
+            return;
+        }
+
         if (path.length > maxPath) {
             return;
         }
@@ -123,48 +133,43 @@ export function findBestRoute(board) {
         for (const [nx, ny] of getNeighbors(x, y, width, height)) {
             const neighborType = board[ny][nx];
             const newFuel = REFUEL_TILES.has(neighborType) ? 3 : fuel - 1;
+            const key = stateKey(nx, ny, newFuel);
             if (neighborType === IMPASSABLE) {
                 continue;
             }
-            if (visited.has(stateKey(nx, ny, newFuel))) {
+            if (visited.has(key)) {
                 continue;
             }
             if (newFuel < 0) {
                 continue;
             }
 
-
             // Check if neighbor is too far from end and would hit max path length
-            let validEnd = false;
-            for (const endTile of endBlock) {
-                if (path.length + manhattan([nx, ny], endTile) <= maxPath) {
-                    validEnd = true;
-                    break;
-                }
-            }
-            if (!validEnd) {
-                continue;
-            }
+            const remaining = stepsToEnd.has(key) ? stepsToEnd.get(key) : Infinity;
+            if (path.length + 1 + remaining > maxPath) continue;
 
             
             // Neighbor is a valid move, so explore it
-            visited.add(stateKey(nx, ny, newFuel));
+            visited.add(key);
             path.push([nx, ny]);
             explore(nx, ny, newFuel);
             path.pop();
-            visited.delete(stateKey(nx, ny, newFuel));
+            visited.delete(key);
 
         }
 
     }
 
     explore(start[0], start[1], 3);
+    if (timedOut) {
+        throw new Error('TIMEOUT');
+    }
     if (best.path === null) throw new Error('No path found');
     const { finalScore, efficiency } = scoreRoute(best.path, board);
     return { finalScore, efficiency, path: best.path };
 }
 
-export function canFindBestRoute(board) {
+function canFindBestRoute(board) {
     const { width, height } = boardSize(board);
     const maxPath = width + height + 2;
     return maxPath < 21;
@@ -361,4 +366,32 @@ export function beamSearch(board, beamWidth) {
     const { finalScore, efficiency } = scoreRoute(best.path, board);
     return { finalScore, efficiency, path: best.path };
 
+}
+
+
+// Orchestrator that tries to solve the board with DFS, then beam if that times out
+export function solveRoute(board, { exactBudgetMs = 30000, beamWidth = 50 } = {}) {
+    // DFS
+    try {
+        const result = findBestRoute(board, {
+            deadlineMs: exactBudgetMs });
+        return { ok: true, exact: true, ...result };
+    } catch (err) {
+        if (err.message !== 'TIMEOUT') {
+            console.warn('exact solver failed:', err);
+        }
+    }
+
+    // Beam search
+    console.log('DFS timed out, trying beam search...')
+    for (const width of [beamWidth, beamWidth * 4, beamWidth * 20]) {
+        try {
+            const result = beamSearch(board, width);
+            return { ok: true, exact: false, ...result };
+        } catch (err) {
+            continue; // try a wider beam
+        }
+    }
+
+    return { ok: false, reason: 'Could not find a route on this board.'};
 }
