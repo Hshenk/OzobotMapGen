@@ -586,6 +586,7 @@ input:focus {
 @media print {
 	/* Hide the whole app; show only the printable pages. */
 	.app-header,
+	.tab-bar,
 	.app-layout,
 	.app-footer { display: none !important; }
 

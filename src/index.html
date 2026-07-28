@@ -82,6 +82,11 @@
 				</div>
 			</form>
 
+			<!-- Kept directly under the form so a failed Generate is visible
+			     without scrolling past the download buttons. -->
+			<div id="error-box" role="alert" hidden></div>
+			<ul id="warnings" aria-live="polite"></ul>
+
 			<div class="actions">
 				<!-- State (enabled/label) is managed by main.js -->
 				<button type="button" id="btn-route" class="btn">Show Best Route</button>
@@ -94,9 +99,6 @@
 					scale <strong>100%</strong>, and margins <strong>None</strong> so tiles
 					come out at their true 2.05&Prime; size.</p>
 			</div>
-
-			<div id="error-box" hidden></div>
-			<ul id="warnings"></ul>
 		</aside>
 
 		<!-- ============ Map display ============ -->

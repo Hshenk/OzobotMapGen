@@ -8,7 +8,9 @@ export const HEADWIND = 'headwind';
 export const IMPASSABLE = 'impassable';
 export const START = 'start';
 export const END = 'end';
-
+export const MAX_HOP = 4;
+export const REFUEL_TILES = new Set([START, AIRPORT, END]);
+export const TOP_K = 5; // controls how organic the placement of airports looks
 
 /**
  * Converts x and y into usable strings for compare
@@ -40,6 +42,22 @@ export function getNeighbors(x, y, width, height) {
 
     return neighbors;
 }
+
+// finds all tile coordinates within a range of a given x, y
+export function tilesWithinRange(x, y, range, width, height) {
+    const tiles = [];
+    for (let dy = -range; dy < range; dy++) {
+        const span = range -Math.abs(dy);
+        for (let dx = -span; dx < span; dx++) {
+            const ux = x + dx;
+            const uy = y + dy;
+            if (ux < 0 || ux > width - 1 || uy < 0 || uy > height - 1) continue;
+            tiles.push([ux, uy]);
+        }
+    }
+    return tiles;
+}
+
 
 export function findStart(board) {
     for (let y = 0; y < board.length; y++) {

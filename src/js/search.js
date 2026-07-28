@@ -1,7 +1,7 @@
-import { START, AIRPORT, END, IMPASSABLE, TAILWIND, HEADWIND, getNeighbors, 
+import { START, AIRPORT, END, IMPASSABLE, TAILWIND, HEADWIND, REFUEL_TILES, getNeighbors, 
     findStart, findEnd, boardSize, posKey, manhattan} from "./board.js";
 
-const REFUEL_TILES = new Set([START, AIRPORT, END]);
+
 
 function stateKey(x, y, fuel) {
     return `${x},${y},${fuel}`;

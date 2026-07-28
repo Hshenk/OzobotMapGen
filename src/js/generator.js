@@ -1,6 +1,6 @@
 import { createRng } from './prng.js';
 import { EMPTY, AIRPORT, TAILWIND, HEADWIND, IMPASSABLE,
-    START, END, posKey, manhattan, getNeighbors, findStart } from './board.js';
+    START, END, MAX_HOP, REFUEL_TILES, TOP_K, posKey, manhattan, getNeighbors, findStart, tilesWithinRange  } from './board.js';
 import { isSolvable } from './search.js';
 
 
@@ -37,7 +37,7 @@ export function generateMap({
     const shortest = paths.reduce((a, b) => (b.length < a.length ? b : a));
 
     // Validate airport count
-    const minAirports = Math.ceil((shortest.length - 1) / 4) - 1;
+    const minAirports = Math.ceil((shortest.length - 1) / MAX_HOP) - 1;
     if (minAirports > airports) {
         throw new Error('Not enough airports for board of this size');
     }
@@ -55,11 +55,8 @@ export function generateMap({
 
     let nExtra = airports - chain.length;
     if (nExtra > 0) {
-        const newAirports = placeExtraAirports(chain, nExtra, board, rng, width, height, warnings);
-        for (const newAirport of newAirports) {
-            const nearest = chain.length > 0 ? chain.reduce((best, a) => manhattan(a, newAirport) < manhattan(best, newAirport) ? a : best) : start;
-
-            const path = bfsPath(nearest, newAirport, width, height);
+        const newAirports = placeExtraAirports(nExtra, board, rng, width, height, warnings);
+        for (const { path } of newAirports) {
             for (const tile of path) {
                 protectedCor.add(posKey(tile));
             }
@@ -114,6 +111,39 @@ function validateSeed(seed) {
         return seed;
     }
     return Math.floor(Math.random() * 999999) + 1;
+}
+
+
+
+function buildDistField(board, width, height) {
+    const dist = Array.from( { length: height }, () => Array(width).fill(Infinity));
+    const queue = [];
+
+    // every refuel tile is distance 0 from itself 
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (REFUEL_TILES.has(board[y][x])) {
+                dist[y][x] = 0;
+                queue.push([x, y]);
+            }
+        }
+    }
+
+    // spread outward
+    let readIndex = 0;
+    while (readIndex < queue.length) {
+        const [x, y] = queue[readIndex];
+        readIndex++;
+
+        for (const [nx, ny] of getNeighbors(x, y, width, height)) {
+            if (dist[ny][nx] === Infinity) {
+                dist[ny][nx] = dist[y][x] + 1;
+                queue.push([nx, ny]);
+            }
+        }
+    }
+
+    return dist;
 }
 
 // Returns the shortest path as a list
@@ -180,7 +210,7 @@ function placeStartEnd(rng, endBlock, board, width, height) {
     const yMin = startCorner[1] === 0 ? 0 : Math.floor(height / 2);
     const yMax = startCorner[1] === 0 ? Math.floor(height / 2) - 1 : height - 1;
 
-    const minStartDistance = Math.min(10, width + height - 4);
+    const minStartDistance = Math.min(10, width + height - MAX_HOP);
     const candidates = [];
     for (let x = xMin; x <= xMax; x++) {
         for (let y = yMin; y <= yMax; y++) {
@@ -218,7 +248,7 @@ function generateAirportChain(start, endBlock, rng, width, height) {
             paths.push(manhattan(current, endTile));
         }
         const closestPath = Math.min(...paths);
-        if (closestPath <= 4) {
+        if (closestPath <= MAX_HOP) {
             return chain;
         }
 
@@ -228,7 +258,7 @@ function generateAirportChain(start, endBlock, rng, width, height) {
                 const pos = [x, y];
                 const dis = manhattan(pos, current);
 
-                if (2 <= dis && dis <= 4 && !chainKeys.has(posKey(pos))) {
+                if (2 <= dis && dis <= MAX_HOP && !chainKeys.has(posKey(pos))) {
 
 
 
@@ -350,44 +380,104 @@ function computeProtectedCorridor(start, spineAirports, endBlock, width, height)
     return protectedChain;
 }
 
-function placeExtraAirports(spineAirports, nExtra, board, rng, width, height, warnings) {
-    const newAirports = [];
-    const candidates = [];
-    const candidateKeys = new Set();
-    const allAirports = [...spineAirports, findStart(board)];
 
-    function scanAround(airport) {
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                if (manhattan([x, y], airport) <= 4 &&
-                    board[y][x] === EMPTY &&
-                    !candidateKeys.has(posKey([x, y]))) {
-                        candidates.push([x, y]);
-                        candidateKeys.add(posKey([x, y]));
-                    }
-            }
-        }
-    }
-
-    // Get candidates for airports.
-    for (const airport of allAirports) {
-        scanAround(airport);
-    }
+function placeExtraAirports(nExtra, board, rng, width, height, warnings) {
+    const placed = []; // each entry: { pos, path }
 
     while (nExtra > 0) {
-        if (candidates.length === 0) {
+        const distField = buildDistField(board, width, height);
+
+        // find legal spots and score them
+        const scored = [];
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                if (board[y][x] !== EMPTY) continue;
+                if (distField[y][x] > 4) continue;
+                
+                let gain = 0;
+                for (const [ux, uy] of tilesWithinRange(x, y, 4, width, height)) {
+                    if (distField[uy][ux] > 4) {
+                        gain++;
+                    }
+                }
+
+                scored.push({ pos: [x, y], gain, reach: distField[y][x] });
+            }
+        }
+
+        if (scored.length === 0) {
             warnings.push('Ran out of candidates while placing extra airports');
             break;
         }
-        rng.shuffle(candidates);
-        const next = candidates.pop();
-        board[next[1]][next[0]] = AIRPORT;
-        newAirports.push(next);
+
+        // Select best gain first then by reach
+        scored.sort((a, b) => 
+            (b.gain - a.gain) || (b.reach - a.reach));
+
+        const k = Math.min(TOP_K, scored.length);
+        const chosen = rng.choice(scored.slice(0, k));
+
+
+        let [cx, cy] = chosen.pos;
+        board[cy][cx] = AIRPORT;
+
+        // Find the closest refuel point to record as our parent
+        const path = [[cx, cy]];
+        while (distField[cy][cx] > 0) {
+            for (const [nx, ny] of getNeighbors(cx, cy, width, height)) {
+                if (distField[ny][nx] === distField[cy][cx] - 1) {
+                    [cx, cy] = [nx, ny];
+                    path.push([cx, cy]);
+                    break;
+                }
+            }
+        }
+        
+        placed.push({ pos: chosen.pos, path });
         nExtra -= 1;
-        scanAround(next);
     }
 
-    return newAirports;
+    return placed;
+
+    // OLD - USING FOR REFERENCE 
+
+    // const newAirports = [];
+    // const candidates = [];
+    // const candidateKeys = new Set();
+    // const allAirports = [...spineAirports, findStart(board)];
+
+    // function scanAround(airport) {
+    //     for (let y = 0; y < height; y++) {
+    //         for (let x = 0; x < width; x++) {
+    //             if (manhattan([x, y], airport) <= MAX_HOP &&
+    //                 board[y][x] === EMPTY &&
+    //                 !candidateKeys.has(posKey([x, y]))) {
+    //                     candidates.push([x, y]);
+    //                     candidateKeys.add(posKey([x, y]));
+    //                 }
+    //         }
+    //     }
+    // }
+
+    // // Get candidates for airports.
+    // for (const airport of allAirports) {
+    //     scanAround(airport);
+    // }
+
+    // while (nExtra > 0) {
+    //     if (candidates.length === 0) {
+    //         warnings.push('Ran out of candidates while placing extra airports');
+    //         break;
+    //     }
+    //     rng.shuffle(candidates);
+    //     const next = candidates.pop();
+    //     board[next[1]][next[0]] = AIRPORT;
+    //     newAirports.push(next);
+    //     nExtra -= 1;
+    //     scanAround(next);
+    // }
+
+    // return newAirports;
 }
 
 
