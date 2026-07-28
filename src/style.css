@@ -522,6 +522,28 @@ input:focus {
 
 #seed-display { font-weight: 600; }
 
+/* Right-hand cluster of the meta row: estimate badge + route readout. */
+.meta-right {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+/* Marks a route produced by the fast (approximate) beam search. */
+.estimate-badge {
+	padding: 0.1rem 0.5rem;
+	border-radius: 999px;
+	background: var(--warn-bg);
+	border: 1px solid var(--warn-border);
+	color: #7a5300;
+	font-size: 0.78rem;
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: help;
+}
+
 #map-container {
 	background: var(--panel);
 	border: 1px solid var(--border);

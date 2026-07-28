@@ -103,7 +103,13 @@
 		<main class="map-area">
 			<div class="map-meta">
 				<span id="seed-display"></span>
-				<span id="route-info"></span>
+				<span class="meta-right">
+					<!-- Shown by main.js only when the route came from the beam
+					     search (an estimate) rather than the exact solver. -->
+					<span id="route-estimate" class="estimate-badge" hidden
+						title="This board is too large to check every possible route in a reasonable time, so the map shows the best route found by a fast search. It is usually optimal or very close, but it is not guaranteed to be the single best route.">≈ Estimated route</span>
+					<span id="route-info"></span>
+				</span>
 			</div>
 			<div id="map-container">
 				<p class="placeholder-text">Click <strong>Generate Map</strong> to create your first board.</p>

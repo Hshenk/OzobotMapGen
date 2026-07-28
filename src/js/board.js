@@ -52,6 +52,25 @@ export function findStart(board) {
     throw new Error('start not found');
 }
 
+// Returns a list of tile coordinates [x, y] that are included in the end block
+export function findEnd(board) {
+    const endBlock = [];
+    for (let y = 0; y < board.length; y++) {
+        if (!board[y].includes(END)) {
+            continue;
+        }
+        for (let x = 0; x < board[0].length; x++) {
+            if (board[y][x] === END) {
+                endBlock.push([x, y]);
+            }
+        }
+    }
+    if (endBlock.length === 0) {
+        throw new Error('Could not find end block');
+    }
+    return endBlock;
+}
+
 
 export function boardSize(board) {
     return { width: board[0].length, height: board.length };

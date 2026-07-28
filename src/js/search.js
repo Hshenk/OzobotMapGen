@@ -1,5 +1,5 @@
 import { START, AIRPORT, END, IMPASSABLE, TAILWIND, HEADWIND, getNeighbors, 
-    findStart, boardSize, posKey } from "./board.js";
+    findStart, findEnd, boardSize, posKey, manhattan} from "./board.js";
 
 const REFUEL_TILES = new Set([START, AIRPORT, END]);
 
@@ -90,6 +90,7 @@ export function scoreRoute(path, board) {
 
 export function findBestRoute(board) {
     const start = findStart(board);
+    const endBlock = findEnd(board);
     const { width, height } = boardSize(board);
     const maxPath = width + height + 2;
 
@@ -131,6 +132,20 @@ export function findBestRoute(board) {
             if (newFuel < 0) {
                 continue;
             }
+
+
+            // Check if neighbor is too far from end and would hit max path length
+            let validEnd = false;
+            for (const endTile of endBlock) {
+                if (path.length + manhattan([nx, ny], endTile) <= maxPath) {
+                    validEnd = true;
+                    break;
+                }
+            }
+            if (!validEnd) {
+                continue;
+            }
+
             
             // Neighbor is a valid move, so explore it
             visited.add(stateKey(nx, ny, newFuel));
@@ -153,4 +168,197 @@ export function canFindBestRoute(board) {
     const { width, height } = boardSize(board);
     const maxPath = width + height + 2;
     return maxPath < 21;
+}
+
+
+
+// creates a table to represent how far we are from the end at any given state.
+function buildStepsToEnd(board) {
+    const reverse = new Map();
+    const goals = new Set();
+
+    const { width, height } = boardSize(board);
+
+    // --- Pass 1: walk every legal move and store it reversed ---
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (board[y][x] === IMPASSABLE) {
+                continue;
+            }
+            for (let fuel = 0; fuel <= 3; fuel++) {
+                const from = stateKey(x, y, fuel);
+
+                for (const [nx, ny] of getNeighbors(x, y, width, height)) {
+                    const nType = board[ny][nx];
+                    if (nType === IMPASSABLE) continue;
+
+                    // Fuel check
+                    const nFuel = REFUEL_TILES.has(nType) ? 3 : fuel - 1;
+                    if (nFuel < 0) continue;
+
+                    const to = stateKey(nx, ny, nFuel);
+
+                    if (!reverse.has(to)) reverse.set(to, []);
+                    reverse.get(to).push(from)
+
+                    if (nType === END) goals.add(to);
+                }
+            }
+        }
+    }
+
+
+    // --- pass 2: BFS outward from every goal ---
+    const dist = new Map();
+    const queue = [];
+    for (const g of goals) {
+        dist.set(g, 0);
+        queue.push(g);
+    }
+
+    let readIndex = 0;
+    while (readIndex < queue.length) {
+        const current = queue[readIndex];
+        readIndex++;
+
+        const d = dist.get(current);
+
+        for (const predecessor of (reverse.get(current) ?? [])) {
+            if (!dist.has(predecessor)) {
+                dist.set(predecessor, d + 1);
+                queue.push(predecessor);
+            }
+        }
+    }
+
+    return dist;
+}
+
+
+
+/**
+ * Used for larger boards. This is not an exact best path, but an estimate
+ * @param {list} board 
+ * @param {*} beamWidth 
+ * @returns { finalScore, flightEfficiency, path }
+ */
+export function beamSearch(board, beamWidth) {
+    const start = findStart(board);
+    const { width, height } = boardSize(board);
+    const maxPath = width + height + 2;
+    const stepsToEnd = buildStepsToEnd(board);
+
+
+    let beams = [{ 
+        state: { x: start[0], y: start[1], fuel: 3 }, 
+        path: [start], 
+        visited: new Set([stateKey(start[0], start[1], 3)]),
+        score: 0, 
+        efficiency: 0,
+        toEnd: stepsToEnd.get(stateKey(start[0], start[1], 3)),
+    }]
+    let best = { efficiency: -Infinity, path: null };
+
+
+    // Checks around a given tile for valid neighbors to move to
+    // Returns a new potential beam { state: { x, y, fuel }, path, score }
+    function getValidNeighbors(beam) {
+        const x = beam.state.x;
+        const y = beam.state.y;
+        const fuel = beam.state.fuel;
+        const validNeighbors = [];
+        
+
+
+        for (const [nx, ny] of getNeighbors(x, y, width, height)) {
+            const neighborType = board[ny][nx];
+            const newFuel = REFUEL_TILES.has(neighborType) ? 3 : fuel - 1;
+            const key = stateKey(nx, ny, newFuel);
+            if (neighborType === IMPASSABLE) {
+                continue;
+            }
+            if (beam.visited.has(key)) {
+                continue;
+            }
+            if (newFuel < 0) {
+                continue;
+            }
+
+
+            // Check if neighbor is too far from end and would hit max path length
+            const remaining = stepsToEnd.has(key) ? stepsToEnd.get(key) : Infinity;
+
+            if (beam.path.length + 1 + remaining > maxPath) continue;
+            
+
+
+
+            // Neighbor is a valid move, so add it
+            const nPath = [...beam.path, [nx, ny]];
+            const nVisited = new Set(beam.visited);
+            nVisited.add(key);
+            const { finalScore, efficiency } = scoreRoute(nPath, board);
+            validNeighbors.push({ 
+                state: { x: nx, y: ny, fuel: newFuel }, 
+                path: nPath,
+                visited: nVisited,
+                score: finalScore,
+                efficiency: efficiency,
+                toEnd: stepsToEnd.get(key),
+            });
+        }
+
+        return validNeighbors;
+    }
+
+
+    for (let step = 0; step < maxPath - 1; step++) {
+        let allCandidates = [];
+        // expand all current beams
+        for (const beam of beams) {
+
+            // No need to expand beams that are already at the end
+            const [ cx, cy ] = beam.path.at(-1);
+            if (board[cy][cx] === END) {
+                continue;
+            }
+
+            for (const neighborState of getValidNeighbors(beam)) {
+                allCandidates.push(neighborState);
+
+                // Check if our new candidates are at the end and record best
+                const [ nx, ny ] = neighborState.path.at(-1);
+                if (board[ny][nx] === END) {
+                    if (neighborState.efficiency > best.efficiency) {
+                        best = { efficiency:neighborState.efficiency, path: neighborState.path };
+                    }
+                }
+            }
+        }
+
+        // We sort by score rather than efficiency to encourage moving to airports and the end
+        allCandidates.sort((a, b) => 
+        (b.score - a.score) || (a.toEnd - b.toEnd));
+        
+        // If beams are at duplicate states, take only the best one
+        const seenStates = new Set();
+        beams = []
+
+        for (const candidate of allCandidates) {
+            const key = stateKey(candidate.state.x, candidate.state.y, candidate.state.fuel);
+            if (seenStates.has(key)) continue;
+            seenStates.add(key);
+            beams.push(candidate);
+            if (beams.length >= beamWidth) break;
+        }
+
+        if (beams.length === 0) break;
+    }
+
+
+    // calculate final flight score and efficiency (We only kept efficiency for each)
+    if (best.path === null) throw new Error('No path found');
+    const { finalScore, efficiency } = scoreRoute(best.path, board);
+    return { finalScore, efficiency, path: best.path };
+
 }
